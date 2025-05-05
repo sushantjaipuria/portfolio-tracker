@@ -188,12 +188,7 @@ const PortfolioDetailScreen = ({ navigation }) => {
         </Text>
       </ScrollView>
       
-      <FAB
-        style={styles.fab}
-        icon="plus"
-        onPress={handleAddInvestment}
-        color="#FFFFFF"
-      />
+      {/* Second FAB removed as requested */}
     </View>
   );
 };

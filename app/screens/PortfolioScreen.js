@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { Text, Button, useTheme, Divider, FAB } from 'react-native-paper';
-import { useApp } from '../context/AppContext';
-import { INVESTMENT_TYPES } from '../models';
-import SummaryCard from '../components/SummaryCard';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FAB, Portal, Text, useTheme } from 'react-native-paper';
 import InvestmentItem from '../components/InvestmentItem';
 import LoadingScreen from '../components/LoadingScreen';
-import { formatCurrency } from '../utils/helpers';
+import SummaryCard from '../components/SummaryCard';
+import { useApp } from '../context/AppContext';
+import { INVESTMENT_TYPES } from '../models';
 import { globalStyles } from '../utils/theme';
 
 const PortfolioScreen = ({ navigation }) => {
@@ -15,6 +14,7 @@ const PortfolioScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeInvestments, setActiveInvestments] = useState([]);
   const [inactiveInvestments, setInactiveInvestments] = useState([]);
+  const [fabOpen, setFabOpen] = useState(false);
   
   // Separate active and inactive investments
   useEffect(() => {
@@ -44,6 +44,11 @@ const PortfolioScreen = ({ navigation }) => {
     navigation.navigate('AddInvestment');
   };
   
+  // Navigate to sell investment
+  const handleSellInvestment = () => {
+    navigation.navigate('PortfolioDetailTab');
+  };
+  
   const styles = StyleSheet.create({
     container: {
       ...globalStyles.container,
@@ -67,11 +72,21 @@ const PortfolioScreen = ({ navigation }) => {
       marginBottom: 16,
     },
     fab: {
-      position: 'absolute',
-      margin: 16,
-      right: 0,
-      bottom: 0,
       backgroundColor: theme.colors.primary,
+      position: 'absolute',
+      bottom: 20, // Position from bottom of screen
+      right: 16,
+      transform: [{ scale: 0.85 }], // Making it about 15% smaller
+    },
+    fabActionItem: {
+      marginBottom: 65, // Add space between action items
+      marginRight: 15, // Align with the FAB button
+    },
+    fabActionLabel: {
+      backgroundColor: 'transparent', // Remove white background
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 4,
     },
     sectionHeader: {
       backgroundColor: theme.colors.surface,
@@ -150,20 +165,6 @@ const PortfolioScreen = ({ navigation }) => {
           </View>
         )}
         
-        {/* Active Investments */}
-        {activeInvestments.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.subHeader}>Active Investments</Text>
-            {activeInvestments.map(investment => (
-              <InvestmentItem
-                key={investment.id}
-                investment={investment}
-                onPress={handleInvestmentPress}
-              />
-            ))}
-          </View>
-        )}
-        
         {/* Inactive/Sold Investments */}
         {inactiveInvestments.length > 0 && (
           <View style={styles.section}>
@@ -183,14 +184,53 @@ const PortfolioScreen = ({ navigation }) => {
         </Text>
       </ScrollView>
       
-      <FAB
-        style={styles.fab}
-        icon="plus"
-        onPress={handleAddInvestment}
-        color="#FFFFFF"
-      />
+      <Portal>
+        <FAB.Group
+          open={fabOpen}
+          icon={fabOpen ? 'close' : 'plus'}
+          fabStyle={styles.fab}
+          color="#FFFFFF"
+          size="small"
+          actions={[
+            {
+              icon: 'plus',
+              label: 'Add Investment',
+              onPress: handleAddInvestment,
+              color: '#FFFFFF',
+              style: { 
+                backgroundColor: theme.colors.primary,
+                ...styles.fabActionItem,
+		position: 'absolute',  // This is crucial
+		top: 20,  // Adjust this value to move the button lower
+		right: 2
+              },
+              labelStyle: styles.fabActionLabel,
+              size: 'small',
+              containerStyle: { marginBottom: 0, top: 9, right: 52, alignItems: 'center' } // Center align the icon vertically
+            },
+            {
+              icon: 'minus',
+              label: 'Sell Investment',
+              onPress: handleSellInvestment,
+              color: '#FFFFFF', 
+              style: { 
+                backgroundColor: theme.colors.primary,
+                ...styles.fabActionItem 
+              },
+              labelStyle: styles.fabActionLabel,
+              size: 'small',
+              containerStyle: { marginBottom: 73, alignItems: 'center' } // Center align the icon vertically
+            },
+          ]}
+          onStateChange={({ open }) => setFabOpen(open)}
+          visible={true}
+          placement="top"
+          fabAnimationDuration={200}
+          testID="fab-group"
+        />
+      </Portal>
     </View>
   );
 };
 
-export default PortfolioScreen; 
+export default PortfolioScreen;
