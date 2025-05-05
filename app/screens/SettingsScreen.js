@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Card, Text, RadioButton, List, useTheme, Divider } from 'react-native-paper';
+import { Card, Text, RadioButton, List, useTheme, Divider, TouchableRipple } from 'react-native-paper';
 import { useApp, THEME_PREFERENCES } from '../context/AppContext';
 import { globalStyles } from '../utils/theme';
 
@@ -47,7 +47,7 @@ const SettingsScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.header}>Settings</Text>
+      <Text style={styles.header}></Text>
       
       <Card style={styles.card}>
         <Card.Content>
@@ -62,29 +62,44 @@ const SettingsScreen = () => {
               onValueChange={value => setThemePreference(value)}
               value={themePreference}
             >
-              <View style={styles.radioItem}>
-                <RadioButton 
-                  value={THEME_PREFERENCES.SYSTEM} 
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.radioLabel}>System Default</Text>
-              </View>
+              <TouchableRipple
+                onPress={() => setThemePreference(THEME_PREFERENCES.SYSTEM)}
+                rippleColor="rgba(0, 0, 0, .10)"
+              >
+                <View style={styles.radioItem}>
+                  <RadioButton 
+                    value={THEME_PREFERENCES.SYSTEM} 
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.radioLabel}>System Default</Text>
+                </View>
+              </TouchableRipple>
               
-              <View style={styles.radioItem}>
-                <RadioButton 
-                  value={THEME_PREFERENCES.LIGHT} 
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.radioLabel}>Light</Text>
-              </View>
+              <TouchableRipple
+                onPress={() => setThemePreference(THEME_PREFERENCES.LIGHT)}
+                rippleColor="rgba(0, 0, 0, .10)"
+              >
+                <View style={styles.radioItem}>
+                  <RadioButton 
+                    value={THEME_PREFERENCES.LIGHT} 
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.radioLabel}>Light</Text>
+                </View>
+              </TouchableRipple>
               
-              <View style={styles.radioItem}>
-                <RadioButton 
-                  value={THEME_PREFERENCES.DARK} 
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.radioLabel}>Dark</Text>
-              </View>
+              <TouchableRipple
+                onPress={() => setThemePreference(THEME_PREFERENCES.DARK)}
+                rippleColor="rgba(0, 0, 0, .10)"
+              >
+                <View style={styles.radioItem}>
+                  <RadioButton 
+                    value={THEME_PREFERENCES.DARK} 
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.radioLabel}>Dark</Text>
+                </View>
+              </TouchableRipple>
             </RadioButton.Group>
           </View>
           
@@ -96,8 +111,8 @@ const SettingsScreen = () => {
             />
             <Divider />
             <List.Item
-              title="Version"
-              description="1.0.0"
+              title=""
+              description=""
             />
           </View>
         </Card.Content>
