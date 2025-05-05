@@ -3,7 +3,8 @@ export const formatCurrency = (paise) => {
   if (!paise && paise !== 0) return '₹0.00';
   
   const rupees = paise / 100;
-  return `₹${rupees.toFixed(2)}`;
+  // Use formatNumber for Indian style formatting
+  return `₹${formatNumber(rupees, 2)}`;
 };
 
 // Convert rupees to paise for storage (to avoid floating point issues)
@@ -80,8 +81,13 @@ export const formatNumber = (num, decimals = 2) => {
   // Convert to string with the specified number of decimal places
   const parts = parseFloat(num).toFixed(decimals).split('.');
   
-  // Format the integer part with commas (Indian style)
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  // Format the integer part with commas (Indian style: 12,34,567)
+  let intPart = parts[0];
+  const lastThree = intPart.length > 3 ? intPart.slice(-3) : intPart;
+  const otherNumbers = intPart.length > 3 ? intPart.slice(0, -3) : '';
+  const formattedOtherNumbers = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ',');
+  
+  parts[0] = otherNumbers ? formattedOtherNumbers + ',' + lastThree : lastThree;
   
   // Combine and return the formatted number
   return parts.join('.');
@@ -103,4 +109,4 @@ export const getGainLossColor = (value) => {
   if (value > 0) return '#4CAF50'; // Green for positive
   if (value < 0) return '#F44336'; // Red for negative
   return '#757575'; // Gray for neutral
-}; 
+};
