@@ -1,50 +1,41 @@
-# Welcome to your Expo app 👋
+# PortTrack
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A lightweight portfolio tracking app for iOS that helps you monitor your investments in Mutual Funds, SIPs, and Equity.
 
-## Get started
+## Features
 
-1. Install dependencies
+- **Portfolio Overview:** Track your entire investment portfolio with a clear summary
+- **Investment Management:** Add, view, and sell investments with ease
+- **Portfolio Details:** View detailed information about each investment type
+- **Sold Investments Tracking:** Keep history of sold investments and their performance
+- **Dark Mode Support:** Choose between light, dark, or system theme
 
-   ```bash
-   npm install
-   ```
+## Technologies Used
 
-2. Start the app
+- React Native with Expo
+- Firebase (Firestore and Authentication)
+- React Navigation
+- React Native Paper (Material Design)
 
-   ```bash
-   npx expo start
-   ```
+## Getting Started
 
-In the output, you'll find options to open the app in a
+Please refer to the detailed [User Guide](./USER_GUIDE.md) for setup and usage instructions.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Requirements
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- iOS device or simulator
+- Mac with Xcode installed (for deployment)
+- Node.js environment
+- Firebase account
 
-## Get a fresh project
+## Screenshots
 
-When you're ready, run:
+(Screenshots will be added after the first deployment)
 
-```bash
-npm run reset-project
-```
+## License
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+This project is for personal use and is not licensed for distribution.
 
-## Learn more
+## Disclaimer
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Prices are delayed; not investment advice. This app is designed for personal tracking only and should not be relied on for making investment decisions.
