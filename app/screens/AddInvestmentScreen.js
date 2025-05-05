@@ -8,12 +8,15 @@ import {
   SegmentedButtons,
   HelperText,
   Divider,
-  RadioButton
+  RadioButton,
+  Modal,
+  Portal,
+  IconButton
 } from 'react-native-paper';
 import { useApp } from '../context/AppContext';
 import { addInvestment } from '../services/investmentService';
 import { INVESTMENT_TYPES, INVESTMENT_STATUS, SIP_FREQUENCY, MutualFund, SIP, Equity } from '../models';
-import { toPaise, formatDate } from '../utils/helpers';
+import { toPaise, formatDate, parseDateString } from '../utils/helpers';
 import { globalStyles } from '../utils/theme';
 import LoadingScreen from '../components/LoadingScreen';
 
@@ -39,7 +42,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
   const [purchaseNAV, setPurchaseNAV] = useState('');
   const [currentNAV, setCurrentNAV] = useState('');
   const [investedAmount, setInvestedAmount] = useState('');
-  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
+  const [purchaseDate, setPurchaseDate] = useState(formatDate(new Date()));
   
   // SIP specific fields
   const [frequency, setFrequency] = useState(SIP_FREQUENCY.MONTHLY);
@@ -54,6 +57,11 @@ const AddInvestmentScreen = ({ navigation, route }) => {
   
   // Error state
   const [errors, setErrors] = useState({});
+  
+  // Date picker state
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [activeDate, setActiveDate] = useState('purchaseDate'); // Track which date field is active
+  const [tempDate, setTempDate] = useState(new Date()); // For calendar navigation
   
   // Reset form based on investment type
   useEffect(() => {
@@ -75,7 +83,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
   // Reset form fields
   const resetForm = () => {
     // Reset common fields
-    setPurchaseDate(new Date().toISOString().split('T')[0]);
+    setPurchaseDate(formatDate(new Date()));
     setInvestedAmount('');
     
     // Reset completion tracking states
@@ -180,6 +188,9 @@ const AddInvestmentScreen = ({ navigation, route }) => {
       
       let investmentData;
       
+      // Convert date from DD-MM-YYYY to a Date object
+      const purchaseDateObj = parseDateString(purchaseDate);
+
       if (investmentType === INVESTMENT_TYPES.MUTUAL_FUND) {
         investmentData = {
           ...MutualFund,
@@ -191,7 +202,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
           currentNAV: toPaise(currentNAV),
           investedAmount: toPaise(investedAmount),
           status: INVESTMENT_STATUS.ACTIVE,
-          purchaseDate: new Date(purchaseDate),
+          purchaseDate: purchaseDateObj,
         };
       } else if (investmentType === INVESTMENT_TYPES.SIP) {
         investmentData = {
@@ -206,7 +217,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
           currentNAV: toPaise(currentNAV),
           investedAmount: toPaise(investedAmount),
           status: INVESTMENT_STATUS.ACTIVE,
-          startDate: new Date(purchaseDate),
+          startDate: purchaseDateObj,
         };
       } else if (investmentType === INVESTMENT_TYPES.EQUITY) {
         investmentData = {
@@ -218,7 +229,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
           currentPrice: toPaise(currentPrice),
           investedAmount: toPaise(investedAmount),
           status: INVESTMENT_STATUS.ACTIVE,
-          purchaseDate: new Date(purchaseDate),
+          purchaseDate: purchaseDateObj,
         };
       }
       
@@ -296,12 +307,149 @@ const AddInvestmentScreen = ({ navigation, route }) => {
     },
   });
   
+  // Effect to handle date picker modal date setting
+  useEffect(() => {
+    if (datePickerVisible) {
+      // Parse the current date value from DD-MM-YYYY format
+      setTempDate(parseDateString(purchaseDate));
+    }
+  }, [datePickerVisible, purchaseDate]);
+    
+  // DatePicker Modal
+  const renderDatePickerModal = () => {
+    
+    // Generate calendar days
+    const daysInMonth = new Date(tempDate.getFullYear(), tempDate.getMonth() + 1, 0).getDate();
+    const firstDayOfMonth = new Date(tempDate.getFullYear(), tempDate.getMonth(), 1).getDay();
+    
+    // Calendar header with month and year
+    const monthName = tempDate.toLocaleDateString('en-US', { month: 'long' });
+    const yearNumber = tempDate.getFullYear();
+    
+    // Days of the week header
+    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    // Handle selected day
+    const handleDaySelect = (day) => {
+      const newDate = new Date(tempDate.getFullYear(), tempDate.getMonth(), day);
+      const formattedDate = formatDate(newDate);
+      
+      // Update the date field
+      setPurchaseDate(formattedDate);
+      
+      setDatePickerVisible(false);
+    };
+    
+    // Navigate to previous/next month
+    const prevMonth = () => {
+      setTempDate(new Date(tempDate.getFullYear(), tempDate.getMonth() - 1, 1));
+    };
+    
+    const nextMonth = () => {
+      setTempDate(new Date(tempDate.getFullYear(), tempDate.getMonth() + 1, 1));
+    };
+    
+    return (
+      <Portal>
+        <Modal 
+          visible={datePickerVisible} 
+          onDismiss={() => setDatePickerVisible(false)}
+          contentContainerStyle={{
+            backgroundColor: theme.colors.surface,
+            padding: 20,
+            margin: 20,
+            borderRadius: 8,
+          }}
+        >
+          <View style={{ alignItems: 'center' }}>
+            {/* Month navigation */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 15 }}>
+              <IconButton icon="chevron-left" onPress={prevMonth} />
+              <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{monthName} {yearNumber}</Text>
+              <IconButton icon="chevron-right" onPress={nextMonth} />
+            </View>
+            
+            {/* Weekday headers */}
+            <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+              {weekdays.map(day => (
+                <Text key={day} style={{ flex: 1, textAlign: 'center' }}>{day}</Text>
+              ))}
+            </View>
+            
+            {/* Calendar days */}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+              {/* Empty spaces for days before the 1st of the month */}
+              {Array.from({ length: firstDayOfMonth }).map((_, index) => (
+                <View key={`empty-${index}`} style={{ width: '14.28%', padding: 10 }} />
+              ))}
+              
+              {/* Actual days of the month */}
+              {Array.from({ length: daysInMonth }).map((_, index) => {
+                const day = index + 1;
+                
+                // Check if this day is the selected day
+                const currentDate = parseDateString(purchaseDate);
+                const isSelected = 
+                  day === currentDate.getDate() && 
+                  tempDate.getMonth() === currentDate.getMonth() && 
+                  tempDate.getFullYear() === currentDate.getFullYear();
+                
+                return (
+                  <Button 
+                    key={`day-${day}`}
+                    onPress={() => handleDaySelect(day)}
+                    mode={isSelected ? "contained" : "text"}
+                    style={{ 
+                      width: '14.28%', 
+                      height: 40,
+                      margin: 0,
+                      padding: 0,
+                      justifyContent: 'center',
+                      borderRadius: isSelected ? 20 : 0,
+                    }}
+                    labelStyle={{ 
+                      fontSize: 14,
+                      margin: 0,
+                    }}
+                  >
+                    {day}
+                  </Button>
+                );
+              })}
+            </View>
+            
+            {/* Buttons */}
+            <View style={{ flexDirection: 'row', marginTop: 20, justifyContent: 'flex-end' }}>
+              <Button onPress={() => setDatePickerVisible(false)} style={{ marginRight: 10 }}>
+                Cancel
+              </Button>
+              <Button mode="contained" onPress={() => {
+                // Format selected date
+                const formattedDate = formatDate(tempDate);
+                
+                // Update the date field
+                setPurchaseDate(formattedDate);
+                
+                setDatePickerVisible(false);
+              }}>
+                Confirm
+              </Button>
+            </View>
+          </View>
+        </Modal>
+      </Portal>
+    );
+  };
+  
   if (isLoading) {
     return <LoadingScreen message="Adding investment..." />;
   }
   
   return (
     <ScrollView style={styles.container}>
+      {/* Render the DatePicker Modal */}
+      {renderDatePickerModal()}
+      
       <Text style={styles.header}>Add New Investment</Text>
       
       {/* Investment Type Selection */}
@@ -343,12 +491,19 @@ const AddInvestmentScreen = ({ navigation, route }) => {
           {errors.schemeName && <HelperText type="error">{errors.schemeName}</HelperText>}
           
           <TextInput
-            label="Purchase Date (YYYY-MM-DD)"
+            label="Purchase Date (DD-MM-YYYY)"
             value={purchaseDate}
             onChangeText={setPurchaseDate}
             style={styles.input}
             mode="outlined"
             error={!!errors.purchaseDate}
+            right={<TextInput.Icon 
+              icon="calendar" 
+              onPress={() => {
+                setActiveDate('purchaseDate');
+                setDatePickerVisible(true);
+              }}
+            />}
           />
           {errors.purchaseDate && <HelperText type="error">{errors.purchaseDate}</HelperText>}
           
@@ -458,12 +613,19 @@ const AddInvestmentScreen = ({ navigation, route }) => {
           </RadioButton.Group>
           
           <TextInput
-            label="Start Date (YYYY-MM-DD)"
+            label="Start Date (DD-MM-YYYY)"
             value={purchaseDate}
             onChangeText={setPurchaseDate}
             style={styles.input}
             mode="outlined"
             error={!!errors.purchaseDate}
+            right={<TextInput.Icon 
+              icon="calendar" 
+              onPress={() => {
+                setActiveDate('purchaseDate');
+                setDatePickerVisible(true);
+              }}
+            />}
           />
           {errors.purchaseDate && <HelperText type="error">{errors.purchaseDate}</HelperText>}
           
@@ -548,12 +710,19 @@ const AddInvestmentScreen = ({ navigation, route }) => {
           {errors.ticker && <HelperText type="error">{errors.ticker}</HelperText>}
           
           <TextInput
-            label="Purchase Date (YYYY-MM-DD)"
+            label="Purchase Date (DD-MM-YYYY)"
             value={purchaseDate}
             onChangeText={setPurchaseDate}
             style={styles.input}
             mode="outlined"
             error={!!errors.purchaseDate}
+            right={<TextInput.Icon 
+              icon="calendar" 
+              onPress={() => {
+                setActiveDate('purchaseDate');
+                setDatePickerVisible(true);
+              }}
+            />}
           />
           {errors.purchaseDate && <HelperText type="error">{errors.purchaseDate}</HelperText>}
           

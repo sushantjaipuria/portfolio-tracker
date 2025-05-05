@@ -18,19 +18,58 @@ export const formatPercentage = (value) => {
   return `${value.toFixed(2)}%`;
 };
 
-// Format date
+// Format date as DD-MM-YYYY
 export const formatDate = (date) => {
   if (!date) return '';
+  
   try {
-    const d = new Date(date);
-    return d.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
+    let d;
+    
+    // Check if it's a Firestore Timestamp (has toDate method)
+    if (date && typeof date.toDate === 'function') {
+      d = date.toDate();
+    } 
+    // Check if it's already a Date object
+    else if (date instanceof Date) {
+      d = date;
+    } 
+    // Otherwise try to parse it as a string or number
+    else {
+      d = new Date(date);
+    }
+    
+    // Verify we have a valid date
+    if (isNaN(d.getTime())) {
+      console.warn('Invalid date value:', date);
+      return '';
+    }
+    
+    // Get day, month, year
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const year = d.getFullYear();
+    
+    // Return in DD-MM-YYYY format
+    return `${day}-${month}-${year}`;
   } catch (error) {
     console.error('Error formatting date:', error);
     return '';
+  }
+};
+
+// Parse date from DD-MM-YYYY format to a Date object
+export const parseDateString = (dateString) => {
+  if (!dateString) return new Date();
+  
+  try {
+    // Split the DD-MM-YYYY string
+    const [day, month, year] = dateString.split('-').map(num => parseInt(num, 10));
+    
+    // Create a new Date (month is 0-indexed so subtract 1)
+    return new Date(year, month - 1, day);
+  } catch (error) {
+    console.error('Error parsing date string:', error);
+    return new Date();
   }
 };
 
