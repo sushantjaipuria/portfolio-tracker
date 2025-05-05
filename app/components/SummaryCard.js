@@ -52,7 +52,8 @@ const SummaryCard = ({ title, investedAmount, currentValue, percentageGain, isIn
   return (
     <View style={styles.container}>
       <View style={styles.cardContainer}>
-        <Card style={{ borderRadius: 8, overflow: 'hidden' }}>
+        <Card style={{ borderRadius: 8 }}>
+          <View style={{ overflow: 'hidden', borderRadius: 8 }}>
           <Card.Title
             title={title}
             titleStyle={styles.title}
@@ -78,6 +79,7 @@ const SummaryCard = ({ title, investedAmount, currentValue, percentageGain, isIn
               </Text>
             </View>
           </Card.Content>
+          </View>
         </Card>
       </View>
     </View>

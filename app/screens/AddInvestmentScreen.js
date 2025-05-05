@@ -28,6 +28,10 @@ const AddInvestmentScreen = ({ navigation, route }) => {
   // Form state
   const [investmentType, setInvestmentType] = useState(defaultType);
   
+  // Field completion tracking states
+  const [purchaseNAVCompleted, setPurchaseNAVCompleted] = useState(false);
+  const [unitsCompleted, setUnitsCompleted] = useState(false);
+  
   // Mutual Fund & SIP form fields
   const [fundHouse, setFundHouse] = useState('');
   const [schemeName, setSchemeName] = useState('');
@@ -56,11 +60,27 @@ const AddInvestmentScreen = ({ navigation, route }) => {
     resetForm();
   }, [investmentType]);
   
+  // Reset form when returning to this screen
+  useEffect(() => {
+    // Create a navigation focus listener to reset the form when screen comes into focus
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Reset the form completely when returning to this screen
+      resetForm();
+    });
+    
+    // Clean up the listener when component unmounts
+    return unsubscribe;
+  }, [navigation]);
+  
   // Reset form fields
   const resetForm = () => {
     // Reset common fields
     setPurchaseDate(new Date().toISOString().split('T')[0]);
     setInvestedAmount('');
+    
+    // Reset completion tracking states
+    setPurchaseNAVCompleted(false);
+    setUnitsCompleted(false);
     
     if (investmentType === INVESTMENT_TYPES.MUTUAL_FUND) {
       setFundHouse('');
@@ -91,14 +111,14 @@ const AddInvestmentScreen = ({ navigation, route }) => {
   // Calculate missing values
   useEffect(() => {
     if (investmentType === INVESTMENT_TYPES.MUTUAL_FUND || investmentType === INVESTMENT_TYPES.SIP) {
-      // Calculate units if investedAmount and purchaseNAV are provided
-      if (investedAmount && purchaseNAV && !units) {
+      // Calculate units if investedAmount and purchaseNAV are provided and completed
+      if (investedAmount && purchaseNAV && !units && purchaseNAVCompleted) {
         const calculatedUnits = parseFloat(investedAmount) / parseFloat(purchaseNAV);
         setUnits(calculatedUnits.toFixed(3));
       }
       
-      // Calculate invested amount if units and purchaseNAV are provided
-      if (units && purchaseNAV && !investedAmount) {
+      // Calculate invested amount if units and purchaseNAV are provided and both completed
+      if (units && purchaseNAV && !investedAmount && purchaseNAVCompleted && unitsCompleted) {
         const calculatedAmount = parseFloat(units) * parseFloat(purchaseNAV);
         setInvestedAmount(calculatedAmount.toFixed(2));
       }
@@ -115,7 +135,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
         setShares(Math.floor(calculatedShares).toString());
       }
     }
-  }, [investmentType, investedAmount, purchaseNAV, units, shares, purchasePrice]);
+  }, [investmentType, investedAmount, purchaseNAV, units, shares, purchasePrice, purchaseNAVCompleted, unitsCompleted]);
   
   // Validate form
   const validateForm = () => {
@@ -242,6 +262,11 @@ const AddInvestmentScreen = ({ navigation, route }) => {
       backgroundColor: theme.colors.surface,
       marginBottom: 16,
     },
+    disabledInput: {
+      backgroundColor: theme.colors.surfaceDisabled,
+      opacity: 0.3,
+      marginBottom: 16,
+    },
     button: {
       marginTop: 24,
       marginBottom: 40,
@@ -263,6 +288,11 @@ const AddInvestmentScreen = ({ navigation, route }) => {
     },
     divider: {
       marginVertical: 16,
+    },
+    helperText: {
+      marginTop: -12,
+      marginBottom: 12,
+      color: theme.colors.onSurfaceVariant,
     },
   });
   
@@ -326,17 +356,26 @@ const AddInvestmentScreen = ({ navigation, route }) => {
             label="Investment Amount (₹)"
             value={investedAmount}
             onChangeText={setInvestedAmount}
-            style={styles.input}
+            style={styles.disabledInput}
             mode="outlined"
             keyboardType="decimal-pad"
             error={!!errors.investedAmount}
+            editable={false}
           />
-          {errors.investedAmount && <HelperText type="error">{errors.investedAmount}</HelperText>}
+          {errors.investedAmount ? (
+            <HelperText type="error">{errors.investedAmount}</HelperText>
+          ) : (
+            <Text style={styles.helperText}>This value is automatically calculated</Text>
+          )}
           
           <TextInput
             label="Purchase NAV (₹)"
             value={purchaseNAV}
-            onChangeText={setPurchaseNAV}
+            onChangeText={(text) => {
+              setPurchaseNAV(text);
+              setPurchaseNAVCompleted(false); // Reset completion status while typing
+            }}
+            onBlur={() => setPurchaseNAVCompleted(true)} // Mark as completed when focus leaves
             style={styles.input}
             mode="outlined"
             keyboardType="decimal-pad"
@@ -347,7 +386,11 @@ const AddInvestmentScreen = ({ navigation, route }) => {
           <TextInput
             label="Units"
             value={units}
-            onChangeText={setUnits}
+            onChangeText={(text) => {
+              setUnits(text);
+              setUnitsCompleted(false); // Reset completion status while typing
+            }}
+            onBlur={() => setUnitsCompleted(true)} // Mark as completed when focus leaves
             style={styles.input}
             mode="outlined"
             keyboardType="decimal-pad"
@@ -438,7 +481,11 @@ const AddInvestmentScreen = ({ navigation, route }) => {
           <TextInput
             label="Total Units Accumulated"
             value={units}
-            onChangeText={setUnits}
+            onChangeText={(text) => {
+              setUnits(text);
+              setUnitsCompleted(false); // Reset completion status while typing
+            }}
+            onBlur={() => setUnitsCompleted(true)} // Mark as completed when focus leaves
             style={styles.input}
             mode="outlined"
             keyboardType="decimal-pad"
@@ -449,7 +496,11 @@ const AddInvestmentScreen = ({ navigation, route }) => {
           <TextInput
             label="Average Purchase NAV (₹)"
             value={purchaseNAV}
-            onChangeText={setPurchaseNAV}
+            onChangeText={(text) => {
+              setPurchaseNAV(text);
+              setPurchaseNAVCompleted(false); // Reset completion status while typing
+            }}
+            onBlur={() => setPurchaseNAVCompleted(true)} // Mark as completed when focus leaves
             style={styles.input}
             mode="outlined"
             keyboardType="decimal-pad"
@@ -532,12 +583,17 @@ const AddInvestmentScreen = ({ navigation, route }) => {
             label="Total Amount Invested (₹)"
             value={investedAmount}
             onChangeText={setInvestedAmount}
-            style={styles.input}
+            style={styles.disabledInput}
             mode="outlined"
             keyboardType="decimal-pad"
             error={!!errors.investedAmount}
+            editable={false}
           />
-          {errors.investedAmount && <HelperText type="error">{errors.investedAmount}</HelperText>}
+          {errors.investedAmount ? (
+            <HelperText type="error">{errors.investedAmount}</HelperText>
+          ) : (
+            <Text style={styles.helperText}>This value is automatically calculated</Text>
+          )}
           
           <TextInput
             label="Current Price Per Share (₹)"

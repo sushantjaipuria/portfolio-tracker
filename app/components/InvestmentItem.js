@@ -127,7 +127,8 @@ const InvestmentItem = ({ investment, onPress }) => {
     <TouchableOpacity onPress={() => onPress(investment)}>
       <View style={styles.container}>
         <View style={styles.cardContainer}>
-          <Card style={{ borderRadius: 8, overflow: 'hidden' }}>
+          <Card style={{ borderRadius: 8 }}>
+            <View style={{ overflow: 'hidden', borderRadius: 8 }}>
             <Card.Content style={styles.content}>
               <Text style={styles.title}>{getTitle()}</Text>
               
@@ -161,6 +162,7 @@ const InvestmentItem = ({ investment, onPress }) => {
                 </Text>
               </View>
             </Card.Content>
+            </View>
           </Card>
         </View>
       </View>

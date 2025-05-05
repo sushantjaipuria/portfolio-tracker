@@ -110,7 +110,7 @@ export const globalStyles = {
   card: {
     marginBottom: 16,
     borderRadius: 8,
-    overflow: 'hidden',
+    // Removed overflow: 'hidden' to fix Surface shadow warning
   },
   cardTitle: {
     paddingVertical: 12,

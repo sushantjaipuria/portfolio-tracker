@@ -150,146 +150,150 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
       
       {/* Summary Section */}
       <Card style={styles.card}>
-        <Card.Content>
-          <View style={styles.row}>
-            <Text style={styles.label}>Invested Amount</Text>
-            <Text style={styles.value}>{formatCurrency(investment.investedAmount)}</Text>
-          </View>
-          
-          <View style={styles.row}>
-            <Text style={styles.label}>Current Value</Text>
-            <Text style={styles.value}>{formatCurrency(currentValue * 100)}</Text>
-          </View>
-          
-          <View style={styles.row}>
-            <Text style={styles.label}>Gain/Loss</Text>
-            <Text style={[styles.value, { color: gainLossColor }]}>
-              {formatPercentage(gainLoss)}
-            </Text>
-          </View>
-          
-          <View style={styles.row}>
-            <Text style={styles.label}>Purchase Date</Text>
-            <Text style={styles.value}>
-              {formatDate(investment.purchaseDate)}
-            </Text>
-          </View>
-          
-          {!isActive && (
-            <>
-              <Divider style={styles.divider} />
-              <View style={styles.row}>
-                <Text style={styles.label}>Sold Date</Text>
-                <Text style={styles.value}>
-                  {formatDate(investment.soldDate)}
-                </Text>
-              </View>
-            </>
-          )}
-        </Card.Content>
+        <View style={{ overflow: 'hidden', borderRadius: 8 }}>
+          <Card.Content>
+            <View style={styles.row}>
+              <Text style={styles.label}>Invested Amount</Text>
+              <Text style={styles.value}>{formatCurrency(investment.investedAmount)}</Text>
+            </View>
+            
+            <View style={styles.row}>
+              <Text style={styles.label}>Current Value</Text>
+              <Text style={styles.value}>{formatCurrency(currentValue * 100)}</Text>
+            </View>
+            
+            <View style={styles.row}>
+              <Text style={styles.label}>Gain/Loss</Text>
+              <Text style={[styles.value, { color: gainLossColor }]}>
+                {formatPercentage(gainLoss)}
+              </Text>
+            </View>
+            
+            <View style={styles.row}>
+              <Text style={styles.label}>Purchase Date</Text>
+              <Text style={styles.value}>
+                {formatDate(investment.purchaseDate)}
+              </Text>
+            </View>
+            
+            {!isActive && (
+              <>
+                <Divider style={styles.divider} />
+                <View style={styles.row}>
+                  <Text style={styles.label}>Sold Date</Text>
+                  <Text style={styles.value}>
+                    {formatDate(investment.soldDate)}
+                  </Text>
+                </View>
+              </>
+            )}
+          </Card.Content>
+        </View>
       </Card>
       
       {/* Details Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Details</Text>
         <Card style={styles.card}>
-          <Card.Content>
-            {investment.type === INVESTMENT_TYPES.MUTUAL_FUND || investment.type === INVESTMENT_TYPES.SIP ? (
-              <>
-                <View style={styles.row}>
-                  <Text style={styles.label}>Fund House</Text>
-                  <Text style={styles.value}>{investment.fundHouse}</Text>
-                </View>
-                
-                <View style={styles.row}>
-                  <Text style={styles.label}>Scheme Name</Text>
-                  <Text style={styles.value}>{investment.schemeName}</Text>
-                </View>
-                
-                <View style={styles.row}>
-                  <Text style={styles.label}>Units</Text>
-                  <Text style={styles.value}>{formatNumber(investment.units, 3)}</Text>
-                </View>
-                
-                <View style={styles.row}>
-                  <Text style={styles.label}>Purchase NAV</Text>
-                  <Text style={styles.value}>{formatCurrency(investment.purchaseNAV)}</Text>
-                </View>
-                
-                <View style={styles.row}>
-                  <Text style={styles.label}>Current NAV</Text>
-                  <Text style={styles.value}>{formatCurrency(investment.currentNAV)}</Text>
-                </View>
-                
-                {investment.type === INVESTMENT_TYPES.SIP && (
-                  <>
-                    <View style={styles.row}>
-                      <Text style={styles.label}>Frequency</Text>
-                      <Text style={styles.value}>{investment.frequency}</Text>
-                    </View>
-                    
-                    <View style={styles.row}>
-                      <Text style={styles.label}>Amount Per Period</Text>
-                      <Text style={styles.value}>{formatCurrency(investment.amountPerPeriod)}</Text>
-                    </View>
-                  </>
-                )}
-              </>
-            ) : (
-              <>
-                <View style={styles.row}>
-                  <Text style={styles.label}>Ticker</Text>
-                  <Text style={styles.value}>{investment.ticker}</Text>
-                </View>
-                
-                <View style={styles.row}>
-                  <Text style={styles.label}>Shares</Text>
-                  <Text style={styles.value}>{investment.shares}</Text>
-                </View>
-                
-                <View style={styles.row}>
-                  <Text style={styles.label}>Purchase Price</Text>
-                  <Text style={styles.value}>{formatCurrency(investment.purchasePrice)}</Text>
-                </View>
-                
-                <View style={styles.row}>
-                  <Text style={styles.label}>Current Price</Text>
-                  <Text style={styles.value}>{formatCurrency(investment.currentPrice)}</Text>
-                </View>
-              </>
-            )}
-            
-            {!isActive && (
-              <>
-                <Divider style={styles.divider} />
-                {investment.type === INVESTMENT_TYPES.MUTUAL_FUND || investment.type === INVESTMENT_TYPES.SIP ? (
-                  <>
-                    <View style={styles.row}>
-                      <Text style={styles.label}>Sold Units</Text>
-                      <Text style={styles.value}>{formatNumber(investment.soldUnits, 3)}</Text>
-                    </View>
-                    
-                    <View style={styles.row}>
-                      <Text style={styles.label}>Sold NAV</Text>
-                      <Text style={styles.value}>{formatCurrency(investment.soldNAV)}</Text>
-                    </View>
-                  </>
-                ) : (
-                  <>
-                    <View style={styles.row}>
-                      <Text style={styles.label}>Sold Shares</Text>
-                      <Text style={styles.value}>{investment.soldShares}</Text>
-                    </View>
-                    
-                    <View style={styles.row}>
-                      <Text style={styles.label}>Sold Price</Text>
-                      <Text style={styles.value}>{formatCurrency(investment.soldPrice)}</Text>
-                    </View>
-                  </>
-                )}
-              </>
-            )}
-          </Card.Content>
+          <View style={{ overflow: 'hidden', borderRadius: 8 }}>
+            <Card.Content>
+              {investment.type === INVESTMENT_TYPES.MUTUAL_FUND || investment.type === INVESTMENT_TYPES.SIP ? (
+                <>
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Fund House</Text>
+                    <Text style={styles.value}>{investment.fundHouse}</Text>
+                  </View>
+                  
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Scheme Name</Text>
+                    <Text style={styles.value}>{investment.schemeName}</Text>
+                  </View>
+                  
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Units</Text>
+                    <Text style={styles.value}>{formatNumber(investment.units, 3)}</Text>
+                  </View>
+                  
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Purchase NAV</Text>
+                    <Text style={styles.value}>{formatCurrency(investment.purchaseNAV)}</Text>
+                  </View>
+                  
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Current NAV</Text>
+                    <Text style={styles.value}>{formatCurrency(investment.currentNAV)}</Text>
+                  </View>
+                  
+                  {investment.type === INVESTMENT_TYPES.SIP && (
+                    <>
+                      <View style={styles.row}>
+                        <Text style={styles.label}>Frequency</Text>
+                        <Text style={styles.value}>{investment.frequency}</Text>
+                      </View>
+                      
+                      <View style={styles.row}>
+                        <Text style={styles.label}>Amount Per Period</Text>
+                        <Text style={styles.value}>{formatCurrency(investment.amountPerPeriod)}</Text>
+                      </View>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Ticker</Text>
+                    <Text style={styles.value}>{investment.ticker}</Text>
+                  </View>
+                  
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Shares</Text>
+                    <Text style={styles.value}>{investment.shares}</Text>
+                  </View>
+                  
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Purchase Price</Text>
+                    <Text style={styles.value}>{formatCurrency(investment.purchasePrice)}</Text>
+                  </View>
+                  
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Current Price</Text>
+                    <Text style={styles.value}>{formatCurrency(investment.currentPrice)}</Text>
+                  </View>
+                </>
+              )}
+              
+              {!isActive && (
+                <>
+                  <Divider style={styles.divider} />
+                  {investment.type === INVESTMENT_TYPES.MUTUAL_FUND || investment.type === INVESTMENT_TYPES.SIP ? (
+                    <>
+                      <View style={styles.row}>
+                        <Text style={styles.label}>Sold Units</Text>
+                        <Text style={styles.value}>{formatNumber(investment.soldUnits, 3)}</Text>
+                      </View>
+                      
+                      <View style={styles.row}>
+                        <Text style={styles.label}>Sold NAV</Text>
+                        <Text style={styles.value}>{formatCurrency(investment.soldNAV)}</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.row}>
+                        <Text style={styles.label}>Sold Shares</Text>
+                        <Text style={styles.value}>{investment.soldShares}</Text>
+                      </View>
+                      
+                      <View style={styles.row}>
+                        <Text style={styles.label}>Sold Price</Text>
+                        <Text style={styles.value}>{formatCurrency(investment.soldPrice)}</Text>
+                      </View>
+                    </>
+                  )}
+                </>
+              )}
+            </Card.Content>
+          </View>
         </Card>
       </View>
       
@@ -313,4 +317,4 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
   );
 };
 
-export default InvestmentDetailScreen; 
+export default InvestmentDetailScreen;
