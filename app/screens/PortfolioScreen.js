@@ -74,7 +74,7 @@ const PortfolioScreen = ({ navigation }) => {
     fab: {
       backgroundColor: theme.colors.primary,
       position: 'absolute',
-      bottom: 20, // Position from bottom of screen
+      bottom: 30, // Position from bottom of screen
       right: 16,
       transform: [{ scale: 0.85 }], // Making it about 15% smaller
     },
@@ -216,11 +216,11 @@ const PortfolioScreen = ({ navigation }) => {
               style: { 
                 backgroundColor: theme.colors.primary,
                 ...styles.fabActionItem,
-		bottom: 10 
+		bottom: 13 
               },
               labelStyle: styles.fabActionLabel,
               size: 'small',
-              containerStyle: { marginBottom: 96, alignItems: 'center' } // Center align the icon vertically
+              containerStyle: { marginBottom: 103, alignItems: 'center' } // Center align the icon vertically
             },
           ]}
           onStateChange={({ open }) => setFabOpen(open)}
