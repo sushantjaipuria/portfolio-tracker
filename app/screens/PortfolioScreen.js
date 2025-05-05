@@ -201,12 +201,12 @@ const PortfolioScreen = ({ navigation }) => {
                 backgroundColor: theme.colors.primary,
                 ...styles.fabActionItem,
 		position: 'absolute',  // This is crucial
-		top: 20,  // Adjust this value to move the button lower
+		top: 5,  // Adjust this value to move the button lower
 		right: 2
               },
               labelStyle: styles.fabActionLabel,
               size: 'small',
-              containerStyle: { marginBottom: 0, top: 9, right: 52, alignItems: 'center' } // Center align the icon vertically
+              containerStyle: { marginBottom: 0, top: -7, right: 52, alignItems: 'center' } // Center align the icon vertically
             },
             {
               icon: 'minus',
@@ -215,11 +215,12 @@ const PortfolioScreen = ({ navigation }) => {
               color: '#FFFFFF', 
               style: { 
                 backgroundColor: theme.colors.primary,
-                ...styles.fabActionItem 
+                ...styles.fabActionItem,
+		bottom: 10 
               },
               labelStyle: styles.fabActionLabel,
               size: 'small',
-              containerStyle: { marginBottom: 73, alignItems: 'center' } // Center align the icon vertically
+              containerStyle: { marginBottom: 96, alignItems: 'center' } // Center align the icon vertically
             },
           ]}
           onStateChange={({ open }) => setFabOpen(open)}
