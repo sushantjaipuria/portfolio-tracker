@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
 import { 
   TextInput, 
   Button, 
@@ -453,7 +453,15 @@ const AddInvestmentScreen = ({ navigation, route }) => {
   }
   
   return (
-    <ScrollView style={styles.container}>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={100} // Adjust this value as needed
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <ScrollView 
+          style={styles.container}
+          keyboardShouldPersistTaps="handled">
       {/* Render the DatePicker Modal */}
       {renderDatePickerModal()}
       
@@ -799,7 +807,9 @@ const AddInvestmentScreen = ({ navigation, route }) => {
       >
         Add Investment
       </Button>
-    </ScrollView>
+        </ScrollView>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 
