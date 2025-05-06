@@ -34,6 +34,9 @@ const AddInvestmentScreen = ({ navigation, route }) => {
   // Field completion tracking states
   const [purchaseNAVCompleted, setPurchaseNAVCompleted] = useState(false);
   const [unitsCompleted, setUnitsCompleted] = useState(false);
+  // Field completion tracking for Equity
+  const [sharesCompleted, setSharesCompleted] = useState(false);
+  const [purchasePriceCompleted, setPurchasePriceCompleted] = useState(false);
   
   // Mutual Fund & SIP form fields
   const [fundHouse, setFundHouse] = useState('');
@@ -72,8 +75,10 @@ const AddInvestmentScreen = ({ navigation, route }) => {
   useEffect(() => {
     // Create a navigation focus listener to reset the form when screen comes into focus
     const unsubscribe = navigation.addListener('focus', () => {
-      // Reset the form completely when returning to this screen
+      // Reset the form completely when returning to this screen - force a complete reset
       resetForm();
+      // Explicitly reset investment amount again to ensure it's cleared
+      setInvestedAmount('');
     });
     
     // Clean up the listener when component unmounts
@@ -89,6 +94,8 @@ const AddInvestmentScreen = ({ navigation, route }) => {
     // Reset completion tracking states
     setPurchaseNAVCompleted(false);
     setUnitsCompleted(false);
+    setSharesCompleted(false);
+    setPurchasePriceCompleted(false);
     
     if (investmentType === INVESTMENT_TYPES.MUTUAL_FUND) {
       setFundHouse('');
@@ -131,19 +138,19 @@ const AddInvestmentScreen = ({ navigation, route }) => {
         setInvestedAmount(calculatedAmount.toFixed(2));
       }
     } else if (investmentType === INVESTMENT_TYPES.EQUITY) {
-      // Calculate invested amount if shares and purchasePrice are provided
-      if (shares && purchasePrice && !investedAmount) {
+      // Calculate invested amount if shares and purchasePrice are provided and both completed
+      if (shares && purchasePrice && !investedAmount && sharesCompleted && purchasePriceCompleted) {
         const calculatedAmount = parseInt(shares) * parseFloat(purchasePrice);
         setInvestedAmount(calculatedAmount.toFixed(2));
       }
       
-      // Calculate shares if investedAmount and purchasePrice are provided
-      if (investedAmount && purchasePrice && !shares) {
+      // Calculate shares if investedAmount and purchasePrice are provided and purchasePrice completed
+      if (investedAmount && purchasePrice && !shares && purchasePriceCompleted) {
         const calculatedShares = parseFloat(investedAmount) / parseFloat(purchasePrice);
         setShares(Math.floor(calculatedShares).toString());
       }
     }
-  }, [investmentType, investedAmount, purchaseNAV, units, shares, purchasePrice, purchaseNAVCompleted, unitsCompleted]);
+  }, [investmentType, investedAmount, purchaseNAV, units, shares, purchasePrice, purchaseNAVCompleted, unitsCompleted, sharesCompleted, purchasePriceCompleted]);
   
   // Validate form
   const validateForm = () => {
@@ -729,7 +736,11 @@ const AddInvestmentScreen = ({ navigation, route }) => {
           <TextInput
             label="Number of Shares"
             value={shares}
-            onChangeText={setShares}
+            onChangeText={(text) => {
+              setShares(text);
+              setSharesCompleted(false); // Reset completion status while typing
+            }}
+            onBlur={() => setSharesCompleted(true)} // Mark as completed when focus leaves
             style={styles.input}
             mode="outlined"
             keyboardType="number-pad"
@@ -740,7 +751,11 @@ const AddInvestmentScreen = ({ navigation, route }) => {
           <TextInput
             label="Purchase Price Per Share (₹)"
             value={purchasePrice}
-            onChangeText={setPurchasePrice}
+            onChangeText={(text) => {
+              setPurchasePrice(text);
+              setPurchasePriceCompleted(false); // Reset completion status while typing
+            }}
+            onBlur={() => setPurchasePriceCompleted(true)} // Mark as completed when focus leaves
             style={styles.input}
             mode="outlined"
             keyboardType="decimal-pad"
