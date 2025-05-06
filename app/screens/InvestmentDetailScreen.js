@@ -1,14 +1,25 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Button, Card, Divider, useTheme } from 'react-native-paper';
 import { useApp } from '../context/AppContext';
 import { INVESTMENT_TYPES, INVESTMENT_STATUS } from '../models';
+import { getOriginalInvestments } from '../utils/investmentMerger';
 import { formatCurrency, formatPercentage, formatDate, getGainLossColor, formatNumber } from '../utils/helpers';
 import { globalStyles } from '../utils/theme';
 
 const InvestmentDetailScreen = ({ navigation, route }) => {
   const theme = useTheme();
+  const { investments } = useApp();
   const investment = route.params?.investment;
+  const [originalInvestments, setOriginalInvestments] = useState([]);
+  
+  // Get original investments if this is a merged investment
+  useEffect(() => {
+    if (investment && investments.length) {
+      const originals = getOriginalInvestments(investment, investments);
+      setOriginalInvestments(originals);
+    }
+  }, [investment, investments]);
   
   if (!investment) {
     return (
@@ -47,6 +58,60 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
   // Handle sell button press
   const handleSellPress = () => {
     navigation.navigate('SellInvestment', { investment });
+  };
+  
+  // Render transaction history section
+  const renderTransactionHistory = () => {
+    if (originalInvestments.length <= 1) return null;
+    
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Transaction History</Text>
+        <Card style={styles.card}>
+          <View style={{ overflow: 'hidden', borderRadius: 8 }}>
+            <Card.Content>
+              {originalInvestments.map((inv, index) => (
+                <View key={inv.id}>
+                  {index > 0 && <Divider style={styles.divider} />}
+                  <Text style={styles.transactionTitle}>
+                    Transaction {index + 1} - {formatDate(inv.purchaseDate)}
+                  </Text>
+                  
+                  {investment.type === INVESTMENT_TYPES.EQUITY ? (
+                    <>
+                      <View style={styles.row}>
+                        <Text style={styles.label}>Shares</Text>
+                        <Text style={styles.value}>{inv.shares}</Text>
+                      </View>
+                      <View style={styles.row}>
+                        <Text style={styles.label}>Purchase Price</Text>
+                        <Text style={styles.value}>{formatCurrency(inv.purchasePrice)}</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.row}>
+                        <Text style={styles.label}>Units</Text>
+                        <Text style={styles.value}>{formatNumber(inv.units, 3)}</Text>
+                      </View>
+                      <View style={styles.row}>
+                        <Text style={styles.label}>NAV</Text>
+                        <Text style={styles.value}>{formatCurrency(inv.purchaseNAV)}</Text>
+                      </View>
+                    </>
+                  )}
+                  
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Amount</Text>
+                    <Text style={styles.value}>{formatCurrency(inv.investedAmount)}</Text>
+                  </View>
+                </View>
+              ))}
+            </Card.Content>
+          </View>
+        </Card>
+      </View>
+    );
   };
   
   const styles = StyleSheet.create({
@@ -126,6 +191,12 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
       textAlign: 'center',
       marginTop: 16,
       fontStyle: 'italic',
+    },
+    transactionTitle: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      marginBottom: 8,
+      color: theme.colors.text,
     },
   });
   
@@ -309,6 +380,9 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
           </Button>
         </View>
       )}
+      
+      {/* Transaction History Section - only shown for merged investments */}
+      {originalInvestments.length > 1 && renderTransactionHistory()}
       
       <Text style={styles.disclaimer}>
         Prices are delayed; not investment advice.

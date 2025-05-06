@@ -4,6 +4,7 @@ import { useColorScheme } from 'react-native';
 import { lightTheme, darkTheme } from '../utils/theme';
 import { signInAnonymous } from '../utils/firebase';
 import { getAllInvestments, calculatePortfolioSummary } from '../services/investmentService';
+import { mergeInvestments } from '../utils/investmentMerger';
 
 // Create context
 export const AppContext = createContext();
@@ -25,6 +26,7 @@ export const AppProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [investments, setInvestments] = useState([]);
+  const [mergedInvestments, setMergedInvestments] = useState([]);
   const [portfolioSummary, setPortfolioSummary] = useState(null);
   
   // Theme state
@@ -104,6 +106,10 @@ export const AppProvider = ({ children }) => {
       // Calculate portfolio summary
       const summary = calculatePortfolioSummary(investmentsData);
       setPortfolioSummary(summary);
+      
+      // Create merged investments
+      const merged = mergeInvestments(investmentsData);
+      setMergedInvestments(merged);
     } catch (error) {
       console.error('Error loading investments:', error);
     } finally {
@@ -129,6 +135,7 @@ export const AppProvider = ({ children }) => {
     isAuthenticated,
     user,
     investments,
+    mergedInvestments,
     portfolioSummary,
     refreshPortfolio,
     theme,

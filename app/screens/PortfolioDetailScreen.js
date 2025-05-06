@@ -11,7 +11,7 @@ import { globalStyles } from '../utils/theme';
 
 const PortfolioDetailScreen = ({ navigation }) => {
   const theme = useTheme();
-  const { investments, portfolioSummary, refreshPortfolio } = useApp();
+  const { mergedInvestments, portfolioSummary, refreshPortfolio } = useApp();
   const [selectedType, setSelectedType] = useState(INVESTMENT_TYPES.MUTUAL_FUND);
   const [filteredInvestments, setFilteredInvestments] = useState([]);
   const [activeInvestments, setActiveInvestments] = useState([]);
@@ -28,8 +28,8 @@ const PortfolioDetailScreen = ({ navigation }) => {
   
   // Filter investments by selected type
   useEffect(() => {
-    if (investments) {
-      const filtered = investments.filter(inv => inv.type === selectedType);
+    if (mergedInvestments) {
+      const filtered = mergedInvestments.filter(inv => inv.type === selectedType);
       const active = filtered.filter(inv => inv.status === 'Active');
       const inactive = filtered.filter(inv => inv.status === 'Inactive');
       
@@ -37,7 +37,7 @@ const PortfolioDetailScreen = ({ navigation }) => {
       setActiveInvestments(active);
       setInactiveInvestments(inactive);
     }
-  }, [selectedType, investments]);
+  }, [selectedType, mergedInvestments]);
   
   // Navigate to investment detail
   const handleInvestmentPress = (investment) => {

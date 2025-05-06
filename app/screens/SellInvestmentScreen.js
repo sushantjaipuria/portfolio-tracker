@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { 
   TextInput, 
   Button, 
@@ -10,6 +10,7 @@ import {
 } from 'react-native-paper';
 import { useApp } from '../context/AppContext';
 import { sellInvestment } from '../services/investmentService';
+import { getOriginalInvestments } from '../utils/investmentMerger';
 import { INVESTMENT_TYPES, INVESTMENT_STATUS } from '../models';
 import { toPaise, formatCurrency, formatDate } from '../utils/helpers';
 import { globalStyles } from '../utils/theme';
@@ -17,8 +18,23 @@ import LoadingScreen from '../components/LoadingScreen';
 
 const SellInvestmentScreen = ({ navigation, route }) => {
   const theme = useTheme();
-  const { refreshPortfolio } = useApp();
+  const { refreshPortfolio, investments } = useApp();
   const [isLoading, setIsLoading] = useState(false);
+  const [originalInvestments, setOriginalInvestments] = useState([]);
+  const [selectedInvestmentId, setSelectedInvestmentId] = useState(null);
+  
+  // Get original investments if this is a merged investment
+  useEffect(() => {
+    if (investment && investments.length) {
+      const originals = getOriginalInvestments(investment, investments);
+      setOriginalInvestments(originals);
+      
+      // If only one investment, select it automatically
+      if (originals.length === 1) {
+        setSelectedInvestmentId(originals[0].id);
+      }
+    }
+  }, [investment, investments]);
   
   // Get the investment from route params
   const investment = route.params?.investment;
@@ -49,16 +65,22 @@ const SellInvestmentScreen = ({ navigation, route }) => {
   // Error state
   const [errors, setErrors] = useState({});
   
-  // Pre-populate values
+  // Pre-populate values based on selected investment
   useEffect(() => {
-    if (investment.type === INVESTMENT_TYPES.MUTUAL_FUND || investment.type === INVESTMENT_TYPES.SIP) {
-      setSoldUnits(investment.units.toString());
-      setSoldNAV(((investment.currentNAV || 0) / 100).toFixed(2));
-    } else if (investment.type === INVESTMENT_TYPES.EQUITY) {
-      setSoldShares(investment.shares.toString());
-      setSoldPrice(((investment.currentPrice || 0) / 100).toFixed(2));
+    // If multiple original investments, use the selected one if available
+    const investmentToUse = 
+      originalInvestments.length > 1 && selectedInvestmentId
+        ? originalInvestments.find(inv => inv.id === selectedInvestmentId) || investment
+        : investment;
+    
+    if (investmentToUse.type === INVESTMENT_TYPES.MUTUAL_FUND || investmentToUse.type === INVESTMENT_TYPES.SIP) {
+      setSoldUnits(investmentToUse.units.toString());
+      setSoldNAV(((investmentToUse.currentNAV || 0) / 100).toFixed(2));
+    } else if (investmentToUse.type === INVESTMENT_TYPES.EQUITY) {
+      setSoldShares(investmentToUse.shares.toString());
+      setSoldPrice(((investmentToUse.currentPrice || 0) / 100).toFixed(2));
     }
-  }, [investment]);
+  }, [investment, selectedInvestmentId, originalInvestments]);
   
   // Calculate total amount
   useEffect(() => {
@@ -108,18 +130,29 @@ const SellInvestmentScreen = ({ navigation, route }) => {
       return;
     }
     
+    // If merged investment, we need to sell the selected original investment
+    const investmentToSell = 
+      originalInvestments.length > 1 && selectedInvestmentId
+        ? originalInvestments.find(inv => inv.id === selectedInvestmentId)
+        : investment;
+    
+    if (!investmentToSell) {
+      Alert.alert('Error', 'Please select a transaction to sell');
+      return;
+    }
+    
     try {
       setIsLoading(true);
       
       let sellData = {};
       
-      if (investment.type === INVESTMENT_TYPES.MUTUAL_FUND || investment.type === INVESTMENT_TYPES.SIP) {
+      if (investmentToSell.type === INVESTMENT_TYPES.MUTUAL_FUND || investmentToSell.type === INVESTMENT_TYPES.SIP) {
         sellData = {
           soldUnits: parseFloat(soldUnits),
           soldNAV: toPaise(soldNAV),
           soldDate: new Date(saleDate),
         };
-      } else if (investment.type === INVESTMENT_TYPES.EQUITY) {
+      } else if (investmentToSell.type === INVESTMENT_TYPES.EQUITY) {
         sellData = {
           soldShares: parseInt(soldShares),
           soldPrice: toPaise(soldPrice),
@@ -127,7 +160,7 @@ const SellInvestmentScreen = ({ navigation, route }) => {
         };
       }
       
-      await sellInvestment(investment.id, sellData);
+      await sellInvestment(investmentToSell.id, sellData);
       await refreshPortfolio();
       
       Alert.alert(
@@ -141,6 +174,47 @@ const SellInvestmentScreen = ({ navigation, route }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // Render transaction selection section for merged investments
+  const renderTransactionSelection = () => {
+    if (originalInvestments.length <= 1) return null;
+    
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Select Transaction to Sell</Text>
+        {originalInvestments.map((inv, index) => (
+          <TouchableOpacity 
+            key={inv.id}
+            style={[
+              styles.transactionItem,
+              selectedInvestmentId === inv.id && styles.selectedTransaction
+            ]}
+            onPress={() => {
+              setSelectedInvestmentId(inv.id);
+            }}
+          >
+            <Text style={styles.transactionTitle}>
+              Transaction {index + 1} - {formatDate(inv.purchaseDate)}
+            </Text>
+            
+            {inv.type === INVESTMENT_TYPES.EQUITY ? (
+              <Text style={styles.transactionDetails}>
+                {inv.shares} shares at {formatCurrency(inv.purchasePrice)}
+              </Text>
+            ) : (
+              <Text style={styles.transactionDetails}>
+                {inv.units} units at {formatCurrency(inv.purchaseNAV)}
+              </Text>
+            )}
+            
+            <Text style={styles.transactionDetails}>
+              Amount: {formatCurrency(inv.investedAmount)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
   };
   
   const styles = StyleSheet.create({
@@ -199,6 +273,27 @@ const SellInvestmentScreen = ({ navigation, route }) => {
     divider: {
       marginVertical: 16,
     },
+    transactionItem: {
+      padding: 12,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.outline,
+      borderRadius: 8,
+    },
+    selectedTransaction: {
+      backgroundColor: theme.colors.primaryContainer,
+      borderColor: theme.colors.primary,
+    },
+    transactionTitle: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      marginBottom: 4,
+      color: theme.colors.text,
+    },
+    transactionDetails: {
+      fontSize: 12,
+      color: theme.colors.text,
+    },
   });
   
   if (isLoading) {
@@ -211,6 +306,9 @@ const SellInvestmentScreen = ({ navigation, route }) => {
       
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Investment Details</Text>
+        
+        {/* Transaction Selection - only for merged investments */}
+        {renderTransactionSelection()}
         <Text style={styles.infoText}>
           Type: <Text style={styles.infoValue}>{investment.type}</Text>
         </Text>
