@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableWithoutFeedback, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, TouchableWithoutFeedback, TouchableOpacity, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
 import { 
   TextInput, 
   Button, 
@@ -65,6 +65,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [activeDate, setActiveDate] = useState('purchaseDate'); // Track which date field is active
   const [tempDate, setTempDate] = useState(new Date()); // For calendar navigation
+  const [calendarView, setCalendarView] = useState('day'); // Track current view: 'day', 'month', or 'year'
   
   // Reset form based on investment type
   useEffect(() => {
@@ -319,8 +320,41 @@ const AddInvestmentScreen = ({ navigation, route }) => {
     if (datePickerVisible) {
       // Parse the current date value from DD-MM-YYYY format
       setTempDate(parseDateString(purchaseDate));
+      // Reset to day view when opening the modal
+      setCalendarView('day');
     }
   }, [datePickerVisible, purchaseDate]);
+  
+  // Handle month/year header click to switch views
+  const handleMonthYearClick = () => {
+    if (calendarView === 'day') {
+      setCalendarView('month');
+    } else if (calendarView === 'month') {
+      setCalendarView('year');
+    }
+  };
+  
+  // Handle month selection in month view
+  const handleMonthSelect = (monthIndex) => {
+    // Update the date to the selected month
+    setTempDate(new Date(tempDate.getFullYear(), monthIndex, 1));
+    // Switch back to day view
+    setCalendarView('day');
+  };
+  
+  // Handle year selection in year view
+  const handleYearSelect = (year) => {
+    // Update the date to the selected year
+    setTempDate(new Date(year, tempDate.getMonth(), 1));
+    // Switch back to month view
+    setCalendarView('month');
+  };
+  
+  // Close modal and reset view
+  const handleCloseModal = () => {
+    setDatePickerVisible(false);
+    setCalendarView('day');
+  };
     
   // DatePicker Modal
   const renderDatePickerModal = () => {
@@ -344,7 +378,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
       // Update the date field
       setPurchaseDate(formattedDate);
       
-      setDatePickerVisible(false);
+      handleCloseModal();
     };
     
     // Navigate to previous/next month
@@ -360,74 +394,182 @@ const AddInvestmentScreen = ({ navigation, route }) => {
       <Portal>
         <Modal 
           visible={datePickerVisible} 
-          onDismiss={() => setDatePickerVisible(false)}
+          onDismiss={handleCloseModal}
           contentContainerStyle={{
-            backgroundColor: theme.colors.surface,
-            padding: 20,
-            margin: 20,
-            borderRadius: 8,
-          }}
+          backgroundColor: theme.colors.surface,
+          padding: 20,
+          margin: 20,
+          borderRadius: 8,
+            height: 420, // Fixed height for the modal
+          justifyContent: 'flex-start' // Align content to the top
+        }}
         >
           <View style={{ alignItems: 'center' }}>
-            {/* Month navigation */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 15 }}>
-              <IconButton icon="chevron-left" onPress={prevMonth} />
-              <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{monthName} {yearNumber}</Text>
-              <IconButton icon="chevron-right" onPress={nextMonth} />
-            </View>
-            
-            {/* Weekday headers */}
-            <View style={{ flexDirection: 'row', marginBottom: 10 }}>
-              {weekdays.map(day => (
-                <Text key={day} style={{ flex: 1, textAlign: 'center' }}>{day}</Text>
-              ))}
-            </View>
-            
-            {/* Calendar days */}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-              {/* Empty spaces for days before the 1st of the month */}
-              {Array.from({ length: firstDayOfMonth }).map((_, index) => (
-                <View key={`empty-${index}`} style={{ width: '14.28%', padding: 10 }} />
-              ))}
-              
-              {/* Actual days of the month */}
-              {Array.from({ length: daysInMonth }).map((_, index) => {
-                const day = index + 1;
-                
-                // Check if this day is the selected day
-                const currentDate = parseDateString(purchaseDate);
-                const isSelected = 
-                  day === currentDate.getDate() && 
-                  tempDate.getMonth() === currentDate.getMonth() && 
-                  tempDate.getFullYear() === currentDate.getFullYear();
-                
-                return (
-                  <Button 
-                    key={`day-${day}`}
-                    onPress={() => handleDaySelect(day)}
-                    mode={isSelected ? "contained" : "text"}
+            {calendarView === 'day' && (
+              <>
+                {/* Month navigation */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 15 }}>
+                  <IconButton icon="chevron-left" onPress={prevMonth} />
+                  <TouchableOpacity 
+                    onPress={handleMonthYearClick}
                     style={{ 
-                      width: '14.28%', 
-                      height: 40,
-                      margin: 0,
-                      padding: 0,
                       justifyContent: 'center',
-                      borderRadius: isSelected ? 20 : 0,
-                    }}
-                    labelStyle={{ 
-                      fontSize: 14,
-                      margin: 0,
+                      alignItems: 'center',
+                      height: 48
                     }}
                   >
-                    {day}
-                  </Button>
-                );
-              })}
-            </View>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{monthName} {yearNumber}</Text>
+                  </TouchableOpacity>
+                  <IconButton icon="chevron-right" onPress={nextMonth} />
+                </View>
+                
+                {/* Weekday headers */}
+                <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+                  {weekdays.map(day => (
+                    <Text key={day} style={{ flex: 1, textAlign: 'center' }}>{day}</Text>
+                  ))}
+                </View>
+                
+                {/* Calendar days */}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                  {/* Empty spaces for days before the 1st of the month */}
+                  {Array.from({ length: firstDayOfMonth }).map((_, index) => (
+                    <View key={`empty-${index}`} style={{ width: '14.28%', padding: 10 }} />
+                  ))}
+                  
+                  {/* Actual days of the month */}
+                  {Array.from({ length: daysInMonth }).map((_, index) => {
+                    const day = index + 1;
+                    
+                    // Check if this day is the selected day
+                    const currentDate = parseDateString(purchaseDate);
+                    const isSelected = 
+                      day === currentDate.getDate() && 
+                      tempDate.getMonth() === currentDate.getMonth() && 
+                      tempDate.getFullYear() === currentDate.getFullYear();
+                    
+                    return (
+                      <Button 
+                        key={`day-${day}`}
+                        onPress={() => handleDaySelect(day)}
+                        mode={isSelected ? "contained" : "text"}
+                        style={{ 
+                          width: '14.28%', 
+                          height: 40,
+                          margin: 0,
+                          padding: 0,
+                          justifyContent: 'center',
+                          borderRadius: isSelected ? 20 : 0,
+                        }}
+                        labelStyle={{ 
+                          fontSize: 14,
+                          margin: 0,
+                        }}
+                      >
+                        {day}
+                      </Button>
+                    );
+                  })}
+                </View>
+              </>
+            )}
+            
+            {calendarView === 'month' && (
+              <>
+                {/* Year navigation */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 15 }}>
+                  <IconButton icon="chevron-left" onPress={() => setTempDate(new Date(tempDate.getFullYear() - 1, tempDate.getMonth(), 1))} />
+                  <TouchableOpacity 
+                    onPress={handleMonthYearClick}
+                    style={{ 
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      height: 48
+                    }}
+                  >
+                    <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{tempDate.getFullYear()}</Text>
+                  </TouchableOpacity>
+                  <IconButton icon="chevron-right" onPress={() => setTempDate(new Date(tempDate.getFullYear() + 1, tempDate.getMonth(), 1))} />
+                </View>
+                
+                {/* Month grid */}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => {
+                    const isSelected = index === tempDate.getMonth();
+                    
+                    return (
+                      <Button 
+                        key={`month-${index}`}
+                        onPress={() => handleMonthSelect(index)}
+                        mode={isSelected ? "contained" : "text"}
+                        style={{ 
+                          width: '33.33%', 
+                          height: 50,
+                          margin: 0,
+                          justifyContent: 'center',
+                        }}
+                        labelStyle={{ fontSize: 14 }}
+                      >
+                        {month}
+                      </Button>
+                    );
+                  })}
+                </View>
+              </>
+            )}
+            
+            {calendarView === 'year' && (
+              <>
+                {/* Year range navigation */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 15 }}>
+                  <IconButton icon="chevron-left" onPress={() => {
+                    const year = tempDate.getFullYear();
+                    setTempDate(new Date(year - 12, tempDate.getMonth(), 1));
+                  }} />
+                  <View style={{
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    height: 48
+                  }}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
+                      {tempDate.getFullYear() - 5} - {tempDate.getFullYear() + 6}
+                    </Text>
+                  </View>
+                  <IconButton icon="chevron-right" onPress={() => {
+                    const year = tempDate.getFullYear();
+                    setTempDate(new Date(year + 12, tempDate.getMonth(), 1));
+                  }} />
+                </View>
+                
+                {/* Year grid */}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                  {Array.from({ length: 12 }, (_, i) => tempDate.getFullYear() - 5 + i).map((year) => {
+                    const isSelected = year === tempDate.getFullYear();
+                    
+                    return (
+                      <Button 
+                        key={`year-${year}`}
+                        onPress={() => handleYearSelect(year)}
+                        mode={isSelected ? "contained" : "text"}
+                        style={{ 
+                          width: '33.33%', 
+                          height: 50,
+                          margin: 0,
+                          justifyContent: 'center',
+                        }}
+                        labelStyle={{ fontSize: 14 }}
+                      >
+                        {year}
+                      </Button>
+                    );
+                  })}
+                </View>
+              </>
+            )}
             
             {/* Buttons */}
             <View style={{ flexDirection: 'row', marginTop: 20, justifyContent: 'flex-end' }}>
-              <Button onPress={() => setDatePickerVisible(false)} style={{ marginRight: 10 }}>
+              <Button onPress={handleCloseModal} style={{ marginRight: 10 }}>
                 Cancel
               </Button>
               <Button mode="contained" onPress={() => {
@@ -437,7 +579,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
                 // Update the date field
                 setPurchaseDate(formattedDate);
                 
-                setDatePickerVisible(false);
+                handleCloseModal();
               }}>
                 Confirm
               </Button>
