@@ -62,10 +62,18 @@ const AutoSuggestInput = ({
 
   // Handle suggestion selection
   const handleSuggestionPress = (suggestion) => {
-    onChangeText(suggestion);
+    // If suggestion is an object, use its schemeName property for the text input
+    if (typeof suggestion === 'object' && suggestion !== null && suggestion.schemeName) {
+      onChangeText(suggestion.schemeName);
+    } else {
+      onChangeText(suggestion);
+    }
+    
+    // Pass the entire suggestion (object or string) to the callback
     if (onSuggestionSelected) {
       onSuggestionSelected(suggestion);
     }
+    
     setShowSuggestions(false);
     Keyboard.dismiss();
   };
@@ -177,7 +185,11 @@ const AutoSuggestInput = ({
                         style={styles.suggestionItem}
                         onPress={() => handleSuggestionPress(item)}
                       >
-                        <Text style={styles.suggestionText}>{item}</Text>
+                        <Text style={styles.suggestionText}>
+                          {typeof item === 'object' && item !== null
+                            ? item.schemeName || JSON.stringify(item)
+                            : item}
+                        </Text>
                       </TouchableOpacity>
                     ))}
                   </View>

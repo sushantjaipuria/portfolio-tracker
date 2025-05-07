@@ -55,9 +55,34 @@ const AddInvestmentScreen = ({ navigation, route }) => {
     console.log('Scheme name suggestions updated:', schemeNameSuggestions);
   }, [schemeNameSuggestions]);
   
+  // Handle scheme selection from suggestions dropdown
+  const handleSchemeSelected = (scheme) => {
+    // If the suggestion is an object with schemeCode and isin, set those values
+    if (typeof scheme === 'object' && scheme !== null) {
+      // Log the object structure for debugging
+      console.log('Scheme object in handleSchemeSelected:', JSON.stringify(scheme));
+      
+      // Only update the state if we have valid values
+      if (scheme.schemeName) {
+        setSchemeName(scheme.schemeName);
+      }
+      
+      setSchemeCode(scheme.schemeCode || '');
+      setIsin(scheme.isin || '');
+      console.log('Updated scheme details - Name:', scheme.schemeName,
+                  '| Code:', scheme.schemeCode, '| ISIN:', scheme.isin);
+    } else {
+      console.log('Non-object scheme selection:', scheme);
+      // For backward compatibility, if a string is received
+      setSchemeName(scheme);
+    }
+  };
+  
   // Mutual Fund & SIP form fields
   const [fundHouse, setFundHouse] = useState('');
   const [schemeName, setSchemeName] = useState('');
+  const [schemeCode, setSchemeCode] = useState('');
+  const [isin, setIsin] = useState('');
   const [units, setUnits] = useState('');
   const [purchaseNAV, setPurchaseNAV] = useState('');
   const [currentNAV, setCurrentNAV] = useState('');
@@ -112,13 +137,31 @@ const AddInvestmentScreen = ({ navigation, route }) => {
   // Handle scheme name search
   const handleSchemeNameSearch = async (text) => {
     setSchemeName(text);
+    // Reset scheme details when user is typing a new scheme name
+    setSchemeCode('');
+    setIsin('');
     
     // Only search if fund house is selected and at least 2 characters are typed
     if (fundHouse && text.length >= 2) {
       setLoadingSchemeNames(true);
       try {
         const suggestions = await searchSchemeNames(fundHouse, text);
+        // Log the type of suggestions for debugging
+        console.log('Scheme suggestions type:', typeof suggestions, Array.isArray(suggestions));
+        console.log('First suggestion (if any):', suggestions.length > 0 ? suggestions[0] : 'none');
+        
         setSchemeNameSuggestions(suggestions);
+        
+        // If there's an exact match, auto-select it
+        const exactMatch = suggestions.find(scheme => 
+          scheme && typeof scheme === 'object' && 
+          scheme.schemeName && 
+          scheme.schemeName.toLowerCase() === text.toLowerCase());
+          
+        if (exactMatch) {
+          setSchemeCode(exactMatch.schemeCode || '');
+          setIsin(exactMatch.isin || '');
+        }
       } catch (error) {
         console.error('Error fetching scheme name suggestions:', error);
       } finally {
@@ -133,6 +176,8 @@ const AddInvestmentScreen = ({ navigation, route }) => {
   useEffect(() => {
     if (fundHouse) {
       setSchemeName('');
+      setSchemeCode('');
+      setIsin('');
       setSchemeNameSuggestions([]);
     }
   }, [fundHouse]);
@@ -172,12 +217,16 @@ const AddInvestmentScreen = ({ navigation, route }) => {
     if (investmentType === INVESTMENT_TYPES.MUTUAL_FUND) {
       setFundHouse('');
       setSchemeName('');
+      setSchemeCode('');
+      setIsin('');
       setUnits('');
       setPurchaseNAV('');
       setCurrentNAV('');
     } else if (investmentType === INVESTMENT_TYPES.SIP) {
       setFundHouse('');
       setSchemeName('');
+      setSchemeCode('');
+      setIsin('');
       setUnits('');
       setPurchaseNAV('');
       setCurrentNAV('');
@@ -276,6 +325,8 @@ const AddInvestmentScreen = ({ navigation, route }) => {
           type: INVESTMENT_TYPES.MUTUAL_FUND,
           fundHouse,
           schemeName,
+          schemeCode,
+          isin,
           units: parseFloat(units),
           purchaseNAV: toPaise(purchaseNAV),
           currentNAV: toPaise(currentNAV),
@@ -289,6 +340,8 @@ const AddInvestmentScreen = ({ navigation, route }) => {
           type: INVESTMENT_TYPES.SIP,
           fundHouse,
           schemeName,
+          schemeCode,
+          isin,
           units: parseFloat(units),
           amountPerPeriod: toPaise(amountPerPeriod),
           frequency,
@@ -732,6 +785,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
             label="Scheme Name"
             value={schemeName}
             onChangeText={handleSchemeNameSearch}
+            onSuggestionSelected={handleSchemeSelected}
             suggestions={schemeNameSuggestions}
             loading={loadingSchemeNames}
             style={styles.autoSuggestContainer}
@@ -837,6 +891,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
             label="Scheme Name"
             value={schemeName}
             onChangeText={handleSchemeNameSearch}
+            onSuggestionSelected={handleSchemeSelected}
             suggestions={schemeNameSuggestions}
             loading={loadingSchemeNames}
             style={styles.input}

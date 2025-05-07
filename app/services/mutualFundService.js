@@ -142,11 +142,25 @@ export const searchSchemeNames = async (fundHouse, searchText) => {
     // Filter results client-side if search text is provided
     const searchLower = searchText.toLowerCase();
     const schemes = snapshot.docs
-      .map(doc => doc.data().schemeName)
-      .filter(schemeName => schemeName.toLowerCase().includes(searchLower));
+      .map(doc => {
+        const data = doc.data();
+        return {
+          schemeName: data.schemeName,
+          schemeCode: data.schemeCode,
+          isin: data.isin
+        };
+      })
+      .filter(scheme => scheme.schemeName.toLowerCase().includes(searchLower));
     
-    // Return up to 10 unique scheme names
-    return [...new Set(schemes)].slice(0, 10);
+    // Return up to 10 unique schemes based on name
+    const schemeMap = new Map();
+    schemes.forEach(scheme => {
+      if (!schemeMap.has(scheme.schemeName)) {
+        schemeMap.set(scheme.schemeName, scheme);
+      }
+    });
+    
+    return Array.from(schemeMap.values()).slice(0, 10);
   } catch (error) {
     console.error('Error searching scheme names:', error);
     return [];
