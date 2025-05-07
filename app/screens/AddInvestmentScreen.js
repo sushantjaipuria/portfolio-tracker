@@ -15,6 +15,8 @@ import {
 } from 'react-native-paper';
 import { useApp } from '../context/AppContext';
 import { addInvestment } from '../services/investmentService';
+import { searchFundHouses, searchSchemeNames } from '../services/mutualFundService';
+import AutoSuggestInput from '../components/AutoSuggestInput';
 import { INVESTMENT_TYPES, INVESTMENT_STATUS, SIP_FREQUENCY, MutualFund, SIP, Equity } from '../models';
 import { toPaise, formatDate, parseDateString } from '../utils/helpers';
 import { globalStyles } from '../utils/theme';
@@ -37,6 +39,21 @@ const AddInvestmentScreen = ({ navigation, route }) => {
   // Field completion tracking for Equity
   const [sharesCompleted, setSharesCompleted] = useState(false);
   const [purchasePriceCompleted, setPurchasePriceCompleted] = useState(false);
+  
+  // Auto-suggest states
+  const [fundHouseSuggestions, setFundHouseSuggestions] = useState([]);
+  const [schemeNameSuggestions, setSchemeNameSuggestions] = useState([]);
+  const [loadingFundHouses, setLoadingFundHouses] = useState(false);
+  const [loadingSchemeNames, setLoadingSchemeNames] = useState(false);
+  
+  // For debugging auto-suggest functionality
+  useEffect(() => {
+    console.log('Fund house suggestions updated:', fundHouseSuggestions);
+  }, [fundHouseSuggestions]);
+  
+  useEffect(() => {
+    console.log('Scheme name suggestions updated:', schemeNameSuggestions);
+  }, [schemeNameSuggestions]);
   
   // Mutual Fund & SIP form fields
   const [fundHouse, setFundHouse] = useState('');
@@ -72,6 +89,54 @@ const AddInvestmentScreen = ({ navigation, route }) => {
     resetForm();
   }, [investmentType]);
   
+  // Handle fund house search
+  const handleFundHouseSearch = async (text) => {
+    setFundHouse(text);
+    
+    // Only search if at least 2 characters are typed
+    if (text.length >= 2) {
+      setLoadingFundHouses(true);
+      try {
+        const suggestions = await searchFundHouses(text);
+        setFundHouseSuggestions(suggestions);
+      } catch (error) {
+        console.error('Error fetching fund house suggestions:', error);
+      } finally {
+        setLoadingFundHouses(false);
+      }
+    } else {
+      setFundHouseSuggestions([]);
+    }
+  };
+  
+  // Handle scheme name search
+  const handleSchemeNameSearch = async (text) => {
+    setSchemeName(text);
+    
+    // Only search if fund house is selected and at least 2 characters are typed
+    if (fundHouse && text.length >= 2) {
+      setLoadingSchemeNames(true);
+      try {
+        const suggestions = await searchSchemeNames(fundHouse, text);
+        setSchemeNameSuggestions(suggestions);
+      } catch (error) {
+        console.error('Error fetching scheme name suggestions:', error);
+      } finally {
+        setLoadingSchemeNames(false);
+      }
+    } else {
+      setSchemeNameSuggestions([]);
+    }
+  };
+  
+  // Clear scheme name when fund house changes
+  useEffect(() => {
+    if (fundHouse) {
+      setSchemeName('');
+      setSchemeNameSuggestions([]);
+    }
+  }, [fundHouse]);
+  
   // Reset form when returning to this screen
   useEffect(() => {
     // Create a navigation focus listener to reset the form when screen comes into focus
@@ -97,6 +162,12 @@ const AddInvestmentScreen = ({ navigation, route }) => {
     setUnitsCompleted(false);
     setSharesCompleted(false);
     setPurchasePriceCompleted(false);
+    
+    // Reset auto-suggest states
+    setFundHouseSuggestions([]);
+    setSchemeNameSuggestions([]);
+    setLoadingFundHouses(false);
+    setLoadingSchemeNames(false);
     
     if (investmentType === INVESTMENT_TYPES.MUTUAL_FUND) {
       setFundHouse('');
@@ -258,6 +329,17 @@ const AddInvestmentScreen = ({ navigation, route }) => {
   };
   
   const styles = StyleSheet.create({
+  autoSuggestContainer: {
+    marginBottom: 16,
+    zIndex: 1000, // Ensure the auto-suggest input appears above other elements
+    position: 'relative',
+    // Add platform-specific styles
+    ...(Platform.OS === 'ios' ? {
+      zIndex: 1000,
+    } : {
+      elevation: 8,
+    }),
+  },
     container: {
       ...globalStyles.container,
       backgroundColor: theme.colors.background,
@@ -277,10 +359,12 @@ const AddInvestmentScreen = ({ navigation, route }) => {
       marginBottom: 8,
       color: theme.colors.text,
     },
+    // Add input style for non-auto-suggest inputs (with lower z-index)
     input: {
-      backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.surface,
       marginBottom: 16,
-    },
+    zIndex: 1, // Lower z-index for regular inputs
+  },
     disabledInput: {
       backgroundColor: theme.colors.surfaceDisabled,
       opacity: 0.3,
@@ -603,7 +687,10 @@ const AddInvestmentScreen = ({ navigation, route }) => {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView 
           style={styles.container}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ paddingBottom: 20 }}
+          removeClippedSubviews={false} // This helps with z-index issues
+        >
       {/* Render the DatePicker Modal */}
       {renderDatePickerModal()}
       
@@ -627,21 +714,25 @@ const AddInvestmentScreen = ({ navigation, route }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mutual Fund Details</Text>
           
-          <TextInput
+          <AutoSuggestInput
             label="Fund House"
             value={fundHouse}
-            onChangeText={setFundHouse}
-            style={styles.input}
+            onChangeText={handleFundHouseSearch}
+            suggestions={fundHouseSuggestions}
+            loading={loadingFundHouses}
+            style={styles.autoSuggestContainer}
             mode="outlined"
             error={!!errors.fundHouse}
           />
           {errors.fundHouse && <HelperText type="error">{errors.fundHouse}</HelperText>}
           
-          <TextInput
+          <AutoSuggestInput
             label="Scheme Name"
             value={schemeName}
-            onChangeText={setSchemeName}
-            style={styles.input}
+            onChangeText={handleSchemeNameSearch}
+            suggestions={schemeNameSuggestions}
+            loading={loadingSchemeNames}
+            style={styles.autoSuggestContainer}
             mode="outlined"
             error={!!errors.schemeName}
           />
@@ -651,7 +742,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
             label="Purchase Date (DD-MM-YYYY)"
             value={purchaseDate}
             onChangeText={setPurchaseDate}
-            style={styles.input}
+            style={styles.autoSuggestContainer}
             mode="outlined"
             error={!!errors.purchaseDate}
             right={<TextInput.Icon 
@@ -688,7 +779,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
               setPurchaseNAVCompleted(false); // Reset completion status while typing
             }}
             onBlur={() => setPurchaseNAVCompleted(true)} // Mark as completed when focus leaves
-            style={styles.input}
+            style={styles.autoSuggestContainer}
             mode="outlined"
             keyboardType="decimal-pad"
             error={!!errors.purchaseNAV}
@@ -728,20 +819,24 @@ const AddInvestmentScreen = ({ navigation, route }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>SIP Details</Text>
           
-          <TextInput
+          <AutoSuggestInput
             label="Fund House"
             value={fundHouse}
-            onChangeText={setFundHouse}
+            onChangeText={handleFundHouseSearch}
+            suggestions={fundHouseSuggestions}
+            loading={loadingFundHouses}
             style={styles.input}
             mode="outlined"
             error={!!errors.fundHouse}
           />
           {errors.fundHouse && <HelperText type="error">{errors.fundHouse}</HelperText>}
           
-          <TextInput
+          <AutoSuggestInput
             label="Scheme Name"
             value={schemeName}
-            onChangeText={setSchemeName}
+            onChangeText={handleSchemeNameSearch}
+            suggestions={schemeNameSuggestions}
+            loading={loadingSchemeNames}
             style={styles.input}
             mode="outlined"
             error={!!errors.schemeName}
