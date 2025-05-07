@@ -402,6 +402,8 @@ const AddInvestmentScreen = ({ navigation, route }) => {
   // Effect to handle date picker modal date setting
   useEffect(() => {
     if (datePickerVisible) {
+      // Dismiss keyboard when date picker is opened
+      Keyboard.dismiss();
       // Parse the current date value from DD-MM-YYYY format
       setTempDate(parseDateString(purchaseDate));
       // Reset to day view when opening the modal
@@ -954,7 +956,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
           <TextInput
             label="Ticker Symbol"
             value={ticker}
-            onChangeText={setTicker}
+            onChangeText={(text) => setTicker(text.toUpperCase())}
             style={styles.input}
             mode="outlined"
             error={!!errors.ticker}
