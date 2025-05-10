@@ -5,6 +5,7 @@ import { lightTheme, darkTheme } from '../utils/theme';
 import { signInAnonymous } from '../utils/firebase';
 import { getAllInvestments, calculatePortfolioSummary } from '../services/investmentService';
 import { mergeInvestments } from '../utils/investmentMerger';
+import { copyBundledDataToDocuments, scheduleDataUpdates } from '../services/dataUpdateService';
 
 // Create context
 export const AppContext = createContext();
@@ -33,6 +34,23 @@ export const AppProvider = ({ children }) => {
   const deviceTheme = useColorScheme();
   const [themePreference, setThemePreference] = useState(THEME_PREFERENCES.SYSTEM);
   const [theme, setTheme] = useState(deviceTheme === 'dark' ? darkTheme : lightTheme);
+  
+  // Initialize local data files and schedule updates
+  useEffect(() => {
+    const initializeLocalData = async () => {
+      try {
+        // Copy bundled data to document directory if needed
+        await copyBundledDataToDocuments();
+        
+        // Schedule weekly updates (Sundays at 10 AM IST)
+        scheduleDataUpdates();
+      } catch (error) {
+        console.error('Error initializing local data:', error);
+      }
+    };
+    
+    initializeLocalData();
+  }, []);
   
   // Fetch theme preference from storage
   useEffect(() => {

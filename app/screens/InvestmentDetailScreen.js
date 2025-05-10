@@ -6,12 +6,17 @@ import { INVESTMENT_TYPES, INVESTMENT_STATUS } from '../models';
 import { getOriginalInvestments } from '../utils/investmentMerger';
 import { formatCurrency, formatPercentage, formatDate, getGainLossColor, formatNumber } from '../utils/helpers';
 import { globalStyles } from '../utils/theme';
+import EditTransactionModal from '../components/EditTransactionModal';
 
 const InvestmentDetailScreen = ({ navigation, route }) => {
   const theme = useTheme();
-  const { investments } = useApp();
+  const { investments, refreshPortfolio } = useApp();
   const investment = route.params?.investment;
   const [originalInvestments, setOriginalInvestments] = useState([]);
+  
+  // Add state for edit modal
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
   
   // Get original investments if this is a merged investment
   useEffect(() => {
@@ -60,9 +65,20 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
     navigation.navigate('SellInvestment', { investment });
   };
   
+  // Handle edit button press
+  const handleEditPress = (transaction) => {
+    setSelectedTransaction(transaction);
+    setEditModalVisible(true);
+  };
+  
+  // Handle successful edit
+  const handleEditSuccess = () => {
+    refreshPortfolio();
+  };
+  
   // Render transaction history section
   const renderTransactionHistory = () => {
-    if (originalInvestments.length <= 1) return null;
+    if (originalInvestments.length === 0) return null;
     
     return (
       <View style={styles.section}>
@@ -73,9 +89,19 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
               {originalInvestments.map((inv, index) => (
                 <View key={inv.id}>
                   {index > 0 && <Divider style={styles.divider} />}
-                  <Text style={styles.transactionTitle}>
-                    Transaction {index + 1} - {formatDate(inv.purchaseDate)}
-                  </Text>
+                  <View style={styles.transactionHeader}>
+                    <Text style={styles.transactionTitle}>
+                      Transaction {index + 1} - {formatDate(inv.purchaseDate)}
+                    </Text>
+                    <Button 
+                      mode="text" 
+                      compact 
+                      icon="pencil" 
+                      onPress={() => handleEditPress(inv)}
+                    >
+                      Edit
+                    </Button>
+                  </View>
                   
                   {investment.type === INVESTMENT_TYPES.EQUITY ? (
                     <>
@@ -197,6 +223,12 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
       fontWeight: 'bold',
       marginBottom: 8,
       color: theme.colors.text,
+    },
+    transactionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
     },
   });
   
@@ -381,8 +413,16 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
         </View>
       )}
       
-      {/* Transaction History Section - only shown for merged investments */}
-      {originalInvestments.length > 1 && renderTransactionHistory()}
+      {/* Transaction History Section */}
+      {renderTransactionHistory()}
+      
+      {/* Edit Transaction Modal */}
+      <EditTransactionModal
+        visible={editModalVisible}
+        onDismiss={() => setEditModalVisible(false)}
+        transaction={selectedTransaction}
+        onSuccess={handleEditSuccess}
+      />
       
       <Text style={styles.disclaimer}>
         Prices are delayed; not investment advice.
