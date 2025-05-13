@@ -45,13 +45,6 @@ export const isTimeToUpdateData = () => {
  */
 export const shouldUpdateData = async () => {
   try {
-    // Check if the data version matches the current version
-    const storedVersion = await AsyncStorage.getItem(DATA_VERSION_KEY);
-    if (storedVersion !== CURRENT_DATA_VERSION) {
-      console.log('Data version mismatch, update needed');
-      return true;
-    }
-    
     // Check when the data was last updated
     const lastUpdateStr = await AsyncStorage.getItem(LAST_DATA_UPDATE_KEY);
     if (!lastUpdateStr) {
