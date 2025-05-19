@@ -27,6 +27,7 @@ export const MutualFund = {
   schemeCode: '',
   isin: '',
   units: 0,
+  remainingUnits: 0, // New field - initialized to same as units on creation
   purchaseNAV: 0,
   currentNAV: 0,
   investedAmount: 0, // Stored as paise (e.g., ₹100.50 = 10050)
@@ -37,6 +38,7 @@ export const MutualFund = {
   soldUnits: 0,
   soldNAV: 0,
   navHistory: [], // Format: { date: Date, value: number }
+  salesHistory: [], // New field - Format: [{ units, salePrice, saleDate, profit }]
 };
 
 export const SIP = {
@@ -47,6 +49,7 @@ export const SIP = {
   schemeCode: '',
   isin: '',
   units: 0,
+  remainingUnits: 0, // New field - initialized to same as units on creation
   purchaseNAV: 0,
   currentNAV: 0,
   investedAmount: 0, // Stored as paise
@@ -60,6 +63,7 @@ export const SIP = {
   soldUnits: 0,
   soldNAV: 0,
   navHistory: [], // Format: { date: Date, value: number }
+  salesHistory: [], // New field - Format: [{ units, salePrice, saleDate, profit }]
 };
 
 export const Equity = {
@@ -67,6 +71,7 @@ export const Equity = {
   type: INVESTMENT_TYPES.EQUITY,
   ticker: '',
   shares: 0,
+  remainingShares: 0, // New field - initialized to same as shares on creation
   purchasePrice: 0, // Stored as paise
   currentPrice: 0,  // Stored as paise
   investedAmount: 0, // Stored as paise
@@ -77,4 +82,5 @@ export const Equity = {
   soldShares: 0,
   soldPrice: 0,
   priceHistory: [], // Format: { date: Date, value: number }
+  salesHistory: [], // New field - Format: [{ shares, salePrice, saleDate, profit }]
 }; 

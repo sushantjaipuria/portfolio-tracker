@@ -6,7 +6,8 @@ import {
   Text, 
   useTheme, 
   HelperText,
-  Divider
+  Divider,
+  Card
 } from 'react-native-paper';
 import { useApp } from '../context/AppContext';
 import { sellInvestment } from '../services/investmentService';
@@ -15,24 +16,19 @@ import { INVESTMENT_TYPES, INVESTMENT_STATUS } from '../models';
 import { toPaise, formatCurrency, formatDate } from '../utils/helpers';
 import { globalStyles } from '../utils/theme';
 import LoadingScreen from '../components/LoadingScreen';
+import InvestmentSummaryCard from '../components/InvestmentSummaryCard';
 
 const SellInvestmentScreen = ({ navigation, route }) => {
   const theme = useTheme();
   const { refreshPortfolio, investments } = useApp();
   const [isLoading, setIsLoading] = useState(false);
   const [originalInvestments, setOriginalInvestments] = useState([]);
-  const [selectedInvestmentId, setSelectedInvestmentId] = useState(null);
   
   // Get original investments if this is a merged investment
   useEffect(() => {
     if (investment && investments.length) {
       const originals = getOriginalInvestments(investment, investments);
       setOriginalInvestments(originals);
-      
-      // If only one investment, select it automatically
-      if (originals.length === 1) {
-        setSelectedInvestmentId(originals[0].id);
-      }
     }
   }, [investment, investments]);
   
@@ -60,27 +56,13 @@ const SellInvestmentScreen = ({ navigation, route }) => {
   const [soldPrice, setSoldPrice] = useState('');
   const [soldNAV, setSoldNAV] = useState('');
   const [totalAmount, setTotalAmount] = useState('');
-  const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
+  const [saleDate, setSaleDate] = useState('');
   
   // Error state
   const [errors, setErrors] = useState({});
   
-  // Pre-populate values based on selected investment
-  useEffect(() => {
-    // If multiple original investments, use the selected one if available
-    const investmentToUse = 
-      originalInvestments.length > 1 && selectedInvestmentId
-        ? originalInvestments.find(inv => inv.id === selectedInvestmentId) || investment
-        : investment;
-    
-    if (investmentToUse.type === INVESTMENT_TYPES.MUTUAL_FUND || investmentToUse.type === INVESTMENT_TYPES.SIP) {
-      setSoldUnits(investmentToUse.units.toString());
-      setSoldNAV(((investmentToUse.currentNAV || 0) / 100).toFixed(2));
-    } else if (investmentToUse.type === INVESTMENT_TYPES.EQUITY) {
-      setSoldShares(investmentToUse.shares.toString());
-      setSoldPrice(((investmentToUse.currentPrice || 0) / 100).toFixed(2));
-    }
-  }, [investment, selectedInvestmentId, originalInvestments]);
+  // We don't pre-populate form values anymore as per requirements
+  // The form should start empty and user can fill in values manually
   
   // Calculate total amount
   useEffect(() => {
@@ -104,14 +86,34 @@ const SellInvestmentScreen = ({ navigation, route }) => {
     if (investment.type === INVESTMENT_TYPES.MUTUAL_FUND || investment.type === INVESTMENT_TYPES.SIP) {
       if (!soldUnits) newErrors.soldUnits = 'Units are required';
       if (parseFloat(soldUnits) <= 0) newErrors.soldUnits = 'Units must be greater than 0';
-      if (parseFloat(soldUnits) > investment.units) newErrors.soldUnits = `Cannot sell more than ${investment.units} units`;
+      
+      // Calculate total remaining units across all original investments
+      const totalRemainingUnits = originalInvestments.length > 0 ?
+        originalInvestments.reduce((total, inv) => {
+          const remaining = inv.remainingUnits !== undefined ? inv.remainingUnits : inv.units;
+          return total + parseFloat(remaining || 0);
+        }, 0) :
+        (investment.remainingUnits !== undefined ? investment.remainingUnits : investment.units);
+      
+      if (parseFloat(soldUnits) > totalRemainingUnits) 
+        newErrors.soldUnits = `Cannot sell more than ${totalRemainingUnits} total remaining units`;
       
       if (!soldNAV) newErrors.soldNAV = 'NAV is required';
       if (parseFloat(soldNAV) <= 0) newErrors.soldNAV = 'NAV must be greater than 0';
     } else if (investment.type === INVESTMENT_TYPES.EQUITY) {
       if (!soldShares) newErrors.soldShares = 'Shares are required';
       if (parseInt(soldShares) <= 0) newErrors.soldShares = 'Shares must be greater than 0';
-      if (parseInt(soldShares) > investment.shares) newErrors.soldShares = `Cannot sell more than ${investment.shares} shares`;
+      
+      // Calculate total remaining shares across all original investments
+      const totalRemainingShares = originalInvestments.length > 0 ?
+        originalInvestments.reduce((total, inv) => {
+          const remaining = inv.remainingShares !== undefined ? inv.remainingShares : inv.shares;
+          return total + parseInt(remaining || 0);
+        }, 0) :
+        (investment.remainingShares !== undefined ? investment.remainingShares : investment.shares);
+      
+      if (parseInt(soldShares) > totalRemainingShares) 
+        newErrors.soldShares = `Cannot sell more than ${totalRemainingShares} total remaining shares`;
       
       if (!soldPrice) newErrors.soldPrice = 'Price is required';
       if (parseFloat(soldPrice) <= 0) newErrors.soldPrice = 'Price must be greater than 0';
@@ -130,37 +132,37 @@ const SellInvestmentScreen = ({ navigation, route }) => {
       return;
     }
     
-    // If merged investment, we need to sell the selected original investment
-    const investmentToSell = 
-      originalInvestments.length > 1 && selectedInvestmentId
-        ? originalInvestments.find(inv => inv.id === selectedInvestmentId)
-        : investment;
-    
-    if (!investmentToSell) {
-      Alert.alert('Error', 'Please select a transaction to sell');
-      return;
-    }
-    
     try {
       setIsLoading(true);
       
+      // For FIFO, we're going to sell from the oldest transactions first
+      // Prepare the sell data
       let sellData = {};
       
-      if (investmentToSell.type === INVESTMENT_TYPES.MUTUAL_FUND || investmentToSell.type === INVESTMENT_TYPES.SIP) {
+      if (investment.type === INVESTMENT_TYPES.MUTUAL_FUND || investment.type === INVESTMENT_TYPES.SIP) {
         sellData = {
-          soldUnits: parseFloat(soldUnits),
-          soldNAV: toPaise(soldNAV),
-          soldDate: new Date(saleDate),
+          totalUnits: parseFloat(soldUnits),
+          salePrice: toPaise(soldNAV),
+          saleDate: new Date(saleDate),
+          isMutualFund: true,
+          investmentType: investment.type,
+          fundHouse: investment.fundHouse,
+          schemeName: investment.schemeName
         };
-      } else if (investmentToSell.type === INVESTMENT_TYPES.EQUITY) {
+      } else if (investment.type === INVESTMENT_TYPES.EQUITY) {
         sellData = {
-          soldShares: parseInt(soldShares),
-          soldPrice: toPaise(soldPrice),
-          soldDate: new Date(saleDate),
+          totalShares: parseInt(soldShares),
+          salePrice: toPaise(soldPrice),
+          saleDate: new Date(saleDate),
+          isMutualFund: false,
+          investmentType: investment.type,
+          ticker: investment.ticker
         };
       }
       
-      await sellInvestment(investmentToSell.id, sellData);
+      // Use the spillover function to handle FIFO properly
+      const { sellInvestmentWithSpillover } = require('../services/investmentService');
+      await sellInvestmentWithSpillover(sellData);
       await refreshPortfolio();
       
       Alert.alert(
@@ -170,49 +172,122 @@ const SellInvestmentScreen = ({ navigation, route }) => {
       );
     } catch (error) {
       console.error('Error selling investment:', error);
-      Alert.alert('Error', 'Failed to sell investment. Please try again.');
+      Alert.alert('Error', `Failed to sell investment: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Render transaction selection section for merged investments
-  const renderTransactionSelection = () => {
-    if (originalInvestments.length <= 1) return null;
+  // Render active holdings summary
+  const renderActiveHoldingsSummary = () => {
+    // For non-merged investments, just use the investment directly
+    // For merged investments with multiple originals, create a summary
     
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Select Transaction to Sell</Text>
-        {originalInvestments.map((inv, index) => (
-          <TouchableOpacity 
-            key={inv.id}
-            style={[
-              styles.transactionItem,
-              selectedInvestmentId === inv.id && styles.selectedTransaction
-            ]}
-            onPress={() => {
-              setSelectedInvestmentId(inv.id);
-            }}
-          >
-            <Text style={styles.transactionTitle}>
-              Transaction {index + 1} - {formatDate(inv.purchaseDate)}
-            </Text>
-            
-            {inv.type === INVESTMENT_TYPES.EQUITY ? (
-              <Text style={styles.transactionDetails}>
-                {inv.shares} shares at {formatCurrency(inv.purchasePrice)}
-              </Text>
-            ) : (
-              <Text style={styles.transactionDetails}>
-                {inv.units} units at {formatCurrency(inv.purchaseNAV)}
-              </Text>
-            )}
-            
-            <Text style={styles.transactionDetails}>
-              Amount: {formatCurrency(inv.investedAmount)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <Text style={styles.sectionTitle}>Current Active Holdings (FIFO Order)</Text>
+        <View style={styles.holdingSummaryContainer}>
+          {originalInvestments.length > 0 ? (
+            // Show all original investments in FIFO order
+            originalInvestments
+              .sort((a, b) => {
+                // Sort by purchase date (oldest first for FIFO)
+                const dateA = a.purchaseDate && typeof a.purchaseDate.toDate === 'function' ? 
+                  a.purchaseDate.toDate() : new Date(a.purchaseDate);
+                const dateB = b.purchaseDate && typeof b.purchaseDate.toDate === 'function' ? 
+                  b.purchaseDate.toDate() : new Date(b.purchaseDate);
+                return dateA - dateB;
+              })
+              .map((inv, index) => {
+                // Only show active investments with remaining units/shares
+                const remainingUnits = inv.remainingUnits !== undefined ? inv.remainingUnits : inv.units;
+                const remainingShares = inv.remainingShares !== undefined ? inv.remainingShares : inv.shares;
+                
+                if ((inv.type === INVESTMENT_TYPES.EQUITY && remainingShares <= 0) ||
+                    ((inv.type === INVESTMENT_TYPES.MUTUAL_FUND || inv.type === INVESTMENT_TYPES.SIP) && remainingUnits <= 0)) {
+                  return null; // Skip fully sold investments
+                }
+                
+                return (
+                  <View key={inv.id} style={styles.holdingItem}>
+                    <Text style={styles.holdingTitle}>
+                      Holding {index + 1} - {formatDate(inv.purchaseDate)}
+                    </Text>
+                    
+                    {inv.type === INVESTMENT_TYPES.EQUITY ? (
+                      <>
+                        <View style={styles.holdingRow}>
+                          <Text style={styles.holdingLabel}>Remaining Shares:</Text>
+                          <Text style={styles.holdingValue}>{remainingShares}</Text>
+                        </View>
+                        <View style={styles.holdingRow}>
+                          <Text style={styles.holdingLabel}>Purchase Price:</Text>
+                          <Text style={styles.holdingValue}>{formatCurrency(inv.purchasePrice)}</Text>
+                        </View>
+                      </>
+                    ) : (
+                      <>
+                        <View style={styles.holdingRow}>
+                          <Text style={styles.holdingLabel}>Remaining Units:</Text>
+                          <Text style={styles.holdingValue}>{remainingUnits}</Text>
+                        </View>
+                        <View style={styles.holdingRow}>
+                          <Text style={styles.holdingLabel}>Purchase NAV:</Text>
+                          <Text style={styles.holdingValue}>{formatCurrency(inv.purchaseNAV)}</Text>
+                        </View>
+                      </>
+                    )}
+                    
+                    <View style={styles.holdingRow}>
+                      <Text style={styles.holdingLabel}>Invested Amount:</Text>
+                      <Text style={styles.holdingValue}>{formatCurrency(inv.investedAmount)}</Text>
+                    </View>
+                  </View>
+                );
+              })
+          ) : (
+            // Show single investment summary
+            <View style={styles.holdingItem}>
+              {investment.type === INVESTMENT_TYPES.EQUITY ? (
+                <>
+                  <View style={styles.holdingRow}>
+                    <Text style={styles.holdingLabel}>Remaining Shares:</Text>
+                    <Text style={styles.holdingValue}>
+                      {investment.remainingShares !== undefined ? investment.remainingShares : investment.shares}
+                    </Text>
+                  </View>
+                  <View style={styles.holdingRow}>
+                    <Text style={styles.holdingLabel}>Purchase Price:</Text>
+                    <Text style={styles.holdingValue}>{formatCurrency(investment.purchasePrice)}</Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.holdingRow}>
+                    <Text style={styles.holdingLabel}>Remaining Units:</Text>
+                    <Text style={styles.holdingValue}>
+                      {investment.remainingUnits !== undefined ? investment.remainingUnits : investment.units}
+                    </Text>
+                  </View>
+                  <View style={styles.holdingRow}>
+                    <Text style={styles.holdingLabel}>Purchase NAV:</Text>
+                    <Text style={styles.holdingValue}>{formatCurrency(investment.purchaseNAV)}</Text>
+                  </View>
+                </>
+              )}
+              
+              <View style={styles.holdingRow}>
+                <Text style={styles.holdingLabel}>Purchase Date:</Text>
+                <Text style={styles.holdingValue}>{formatDate(investment.purchaseDate)}</Text>
+              </View>
+              
+              <View style={styles.holdingRow}>
+                <Text style={styles.holdingLabel}>Invested Amount:</Text>
+                <Text style={styles.holdingValue}>{formatCurrency(investment.investedAmount)}</Text>
+              </View>
+            </View>
+          )}
+        </View>
       </View>
     );
   };
@@ -273,6 +348,39 @@ const SellInvestmentScreen = ({ navigation, route }) => {
     divider: {
       marginVertical: 16,
     },
+    // Styles for the holdings summary
+    holdingSummaryContainer: {
+      marginTop: 8,
+    },
+    holdingItem: {
+      padding: 12,
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: theme.colors.outline,
+      borderRadius: 8,
+      backgroundColor: theme.colors.surface,
+    },
+    holdingTitle: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      marginBottom: 8,
+      color: theme.colors.text,
+    },
+    holdingRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: 4,
+    },
+    holdingLabel: {
+      fontSize: 13,
+      color: theme.colors.text,
+    },
+    holdingValue: {
+      fontSize: 13,
+      fontWeight: 'bold',
+      color: theme.colors.text,
+    },
+    // Legacy styles - kept for backward compatibility
     transactionItem: {
       padding: 12,
       marginBottom: 8,
@@ -300,57 +408,49 @@ const SellInvestmentScreen = ({ navigation, route }) => {
     return <LoadingScreen message="Processing sale..." />;
   }
   
+  // Render Investment Summary Card
+  const renderInvestmentSummary = () => {
+    // Get remaining units/shares
+    const remainingUnits = investment.remainingUnits !== undefined ? 
+      investment.remainingUnits : investment.units;
+    const remainingShares = investment.remainingShares !== undefined ? 
+      investment.remainingShares : investment.shares;
+    
+    // Calculate current value
+    let currentValue = 0;
+    
+    if (investment.type === INVESTMENT_TYPES.MUTUAL_FUND || investment.type === INVESTMENT_TYPES.SIP) {
+      currentValue = remainingUnits * (investment.currentNAV / 100);
+      
+      return (
+        <InvestmentSummaryCard
+          schemeName={`${investment.fundHouse} - ${investment.schemeName}`}
+          currentValue={currentValue * 100} // Convert back to paise for formatCurrency
+          totalUnits={investment.units}
+          remainingUnits={remainingUnits}
+          currentNAV={investment.currentNAV}
+          type={investment.type}
+        />
+      );
+    } else {
+      currentValue = remainingShares * (investment.currentPrice / 100);
+      
+      return (
+        <InvestmentSummaryCard
+          schemeName={investment.ticker}
+          currentValue={currentValue * 100} // Convert back to paise for formatCurrency
+          totalShares={investment.shares}
+          remainingShares={remainingShares}
+          currentPrice={investment.currentPrice}
+          type={investment.type}
+        />
+      );
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.header}>Sell Investment</Text>
-      
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Investment Details</Text>
-        
-        {/* Transaction Selection - only for merged investments */}
-        {renderTransactionSelection()}
-        <Text style={styles.infoText}>
-          Type: <Text style={styles.infoValue}>{investment.type}</Text>
-        </Text>
-        
-        {investment.type === INVESTMENT_TYPES.MUTUAL_FUND || investment.type === INVESTMENT_TYPES.SIP ? (
-          <>
-            <Text style={styles.infoText}>
-              Fund: <Text style={styles.infoValue}>{investment.fundHouse} - {investment.schemeName}</Text>
-            </Text>
-            <Text style={styles.infoText}>
-              Current Units: <Text style={styles.infoValue}>{investment.units}</Text>
-            </Text>
-            <Text style={styles.infoText}>
-              Current NAV: <Text style={styles.infoValue}>
-                {formatCurrency(investment.currentNAV)}
-              </Text>
-            </Text>
-          </>
-        ) : (
-          <>
-            <Text style={styles.infoText}>
-              Ticker: <Text style={styles.infoValue}>{investment.ticker}</Text>
-            </Text>
-            <Text style={styles.infoText}>
-              Current Shares: <Text style={styles.infoValue}>{investment.shares}</Text>
-            </Text>
-            <Text style={styles.infoText}>
-              Current Price: <Text style={styles.infoValue}>
-                {formatCurrency(investment.currentPrice)}
-              </Text>
-            </Text>
-          </>
-        )}
-        
-        <Text style={styles.infoText}>
-          Invested Amount: <Text style={styles.infoValue}>
-            {formatCurrency(investment.investedAmount)}
-          </Text>
-        </Text>
-      </View>
-      
-      <Divider style={styles.divider} />
       
       <View style={styles.section}>
         <Text style={styles.subHeader}>Sale Details</Text>
@@ -420,16 +520,28 @@ const SellInvestmentScreen = ({ navigation, route }) => {
         <Text style={styles.totalAmount}>
           Total Sale Amount: <Text style={styles.totalValue}>₹{totalAmount}</Text>
         </Text>
+        
+        <Button
+          mode="contained"
+          onPress={handleSubmit}
+          style={styles.button}
+          buttonColor={theme.colors.primary}
+        >
+          Confirm Sale
+        </Button>
       </View>
       
-      <Button
-        mode="contained"
-        onPress={handleSubmit}
-        style={styles.button}
-        buttonColor={theme.colors.primary}
-      >
-        Confirm Sale
-      </Button>
+      <Divider style={styles.divider} />
+      
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Investment Summary</Text>
+        {/* Investment Summary Card */}
+        {renderInvestmentSummary()}
+      </View>
+      
+      {/* Active Holdings Summary - FIFO order */}
+      {renderActiveHoldingsSummary()}
+      
     </ScrollView>
   );
 };

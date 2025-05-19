@@ -124,6 +124,7 @@ const PortfolioScreen = ({ navigation }) => {
             title="Total Portfolio"
             investedAmount={portfolioSummary.totalInvested}
             currentValue={portfolioSummary.totalCurrentValue}
+            realizedGain={portfolioSummary.totalRealizedGain}
             percentageGain={portfolioSummary.percentageGain}
           />
         )}
@@ -139,6 +140,7 @@ const PortfolioScreen = ({ navigation }) => {
                 title="Mutual Funds"
                 investedAmount={portfolioSummary.byType[INVESTMENT_TYPES.MUTUAL_FUND].totalInvested}
                 currentValue={portfolioSummary.byType[INVESTMENT_TYPES.MUTUAL_FUND].totalCurrentValue}
+                realizedGain={portfolioSummary.byType[INVESTMENT_TYPES.MUTUAL_FUND].totalRealizedGain}
                 percentageGain={portfolioSummary.byType[INVESTMENT_TYPES.MUTUAL_FUND].percentageGain}
               />
             )}
@@ -149,6 +151,7 @@ const PortfolioScreen = ({ navigation }) => {
                 title="SIPs"
                 investedAmount={portfolioSummary.byType[INVESTMENT_TYPES.SIP].totalInvested}
                 currentValue={portfolioSummary.byType[INVESTMENT_TYPES.SIP].totalCurrentValue}
+                realizedGain={portfolioSummary.byType[INVESTMENT_TYPES.SIP].totalRealizedGain}
                 percentageGain={portfolioSummary.byType[INVESTMENT_TYPES.SIP].percentageGain}
               />
             )}
@@ -159,6 +162,7 @@ const PortfolioScreen = ({ navigation }) => {
                 title="Equity"
                 investedAmount={portfolioSummary.byType[INVESTMENT_TYPES.EQUITY].totalInvested}
                 currentValue={portfolioSummary.byType[INVESTMENT_TYPES.EQUITY].totalCurrentValue}
+                realizedGain={portfolioSummary.byType[INVESTMENT_TYPES.EQUITY].totalRealizedGain}
                 percentageGain={portfolioSummary.byType[INVESTMENT_TYPES.EQUITY].percentageGain}
               />
             )}
@@ -175,6 +179,7 @@ const PortfolioScreen = ({ navigation }) => {
               title="Pre-April 2025 Investments"
               investedAmount={portfolioSummary.byTimeline.beforeApril2025.totalInvested}
               currentValue={portfolioSummary.byTimeline.beforeApril2025.totalCurrentValue}
+              realizedGain={portfolioSummary.byTimeline.beforeApril2025.totalRealizedGain}
               percentageGain={portfolioSummary.byTimeline.beforeApril2025.percentageGain}
             />
             
@@ -183,6 +188,7 @@ const PortfolioScreen = ({ navigation }) => {
               title="Post-April 2025 Investments"
               investedAmount={portfolioSummary.byTimeline.afterApril2025.totalInvested}
               currentValue={portfolioSummary.byTimeline.afterApril2025.totalCurrentValue}
+              realizedGain={portfolioSummary.byTimeline.afterApril2025.totalRealizedGain}
               percentageGain={portfolioSummary.byTimeline.afterApril2025.percentageGain}
             />
           </View>

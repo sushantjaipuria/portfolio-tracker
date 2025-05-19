@@ -46,15 +46,27 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
   let currentValue = 0;
   let gainLoss = 0;
   
+  // Get remaining units/shares
+  const remainingUnits = investment.remainingUnits !== undefined 
+    ? investment.remainingUnits 
+    : investment.units;
+  const remainingShares = investment.remainingShares !== undefined 
+    ? investment.remainingShares 
+    : investment.shares;
+  
   if (investment.type === INVESTMENT_TYPES.MUTUAL_FUND || investment.type === INVESTMENT_TYPES.SIP) {
-    currentValue = investment.units * (investment.currentNAV / 100);
+    currentValue = remainingUnits * (investment.currentNAV / 100);
     if (investment.investedAmount > 0) {
-      gainLoss = ((currentValue - (investment.investedAmount / 100)) / (investment.investedAmount / 100)) * 100;
+      // Calculate gain/loss based on remaining invested amount (proportional)
+      const remainingInvestedAmount = (remainingUnits / investment.units) * investment.investedAmount;
+      gainLoss = ((currentValue - (remainingInvestedAmount / 100)) / (remainingInvestedAmount / 100)) * 100;
     }
   } else if (investment.type === INVESTMENT_TYPES.EQUITY) {
-    currentValue = investment.shares * (investment.currentPrice / 100);
+    currentValue = remainingShares * (investment.currentPrice / 100);
     if (investment.investedAmount > 0) {
-      gainLoss = ((currentValue - (investment.investedAmount / 100)) / (investment.investedAmount / 100)) * 100;
+      // Calculate gain/loss based on remaining invested amount (proportional)
+      const remainingInvestedAmount = (remainingShares / investment.shares) * investment.investedAmount;
+      gainLoss = ((currentValue - (remainingInvestedAmount / 100)) / (remainingInvestedAmount / 100)) * 100;
     }
   }
   
@@ -76,6 +88,65 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
     refreshPortfolio();
   };
   
+  // Render sales history section
+  const renderSalesHistory = () => {
+    if (!investment.salesHistory || investment.salesHistory.length === 0) return null;
+    
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Sales History</Text>
+        <Card style={styles.card}>
+          <View style={{ overflow: 'hidden', borderRadius: 8 }}>
+            <Card.Content>
+              {investment.salesHistory.map((sale, index) => (
+                <View key={index}>
+                  {index > 0 && <Divider style={styles.divider} />}
+                  <Text style={styles.transactionTitle}>
+                    Sale {index + 1} - {formatDate(sale.saleDate)}
+                  </Text>
+                  
+                  {investment.type === INVESTMENT_TYPES.EQUITY ? (
+                    <>
+                      <View style={styles.row}>
+                        <Text style={styles.label}>Shares Sold</Text>
+                        <Text style={styles.value}>{sale.shares}</Text>
+                      </View>
+                      <View style={styles.row}>
+                        <Text style={styles.label}>Sale Price</Text>
+                        <Text style={styles.value}>{formatCurrency(sale.salePrice)}</Text>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.row}>
+                        <Text style={styles.label}>Units Sold</Text>
+                        <Text style={styles.value}>{formatNumber(sale.units, 3)}</Text>
+                      </View>
+                      <View style={styles.row}>
+                        <Text style={styles.label}>Sale NAV</Text>
+                        <Text style={styles.value}>{formatCurrency(sale.salePrice)}</Text>
+                      </View>
+                    </>
+                  )}
+                  
+                  <View style={styles.row}>
+                    <Text style={styles.label}>Profit/Loss</Text>
+                    <Text style={[
+                      styles.value, 
+                      { color: getGainLossColor(sale.profit) }
+                    ]}>
+                      {formatCurrency(sale.profit)}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </Card.Content>
+          </View>
+        </Card>
+      </View>
+    );
+  };
+
   // Render transaction history section
   const renderTransactionHistory = () => {
     if (originalInvestments.length === 0) return null;
@@ -279,6 +350,15 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
               </Text>
             </View>
             
+            <View style={styles.row}>
+              <Text style={styles.label}>Remaining {investment.type === INVESTMENT_TYPES.EQUITY ? 'Shares' : 'Units'}</Text>
+              <Text style={styles.value}>
+                {investment.type === INVESTMENT_TYPES.EQUITY 
+                  ? remainingShares
+                  : formatNumber(remainingUnits, 3)}
+              </Text>
+            </View>
+            
             {!isActive && (
               <>
                 <Divider style={styles.divider} />
@@ -365,36 +445,37 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
                 </>
               )}
               
-              {!isActive && (
-                <>
-                  <Divider style={styles.divider} />
-                  {investment.type === INVESTMENT_TYPES.MUTUAL_FUND || investment.type === INVESTMENT_TYPES.SIP ? (
-                    <>
-                      <View style={styles.row}>
-                        <Text style={styles.label}>Sold Units</Text>
-                        <Text style={styles.value}>{formatNumber(investment.soldUnits, 3)}</Text>
-                      </View>
-                      
-                      <View style={styles.row}>
-                        <Text style={styles.label}>Sold NAV</Text>
-                        <Text style={styles.value}>{formatCurrency(investment.soldNAV)}</Text>
-                      </View>
-                    </>
-                  ) : (
-                    <>
-                      <View style={styles.row}>
-                        <Text style={styles.label}>Sold Shares</Text>
-                        <Text style={styles.value}>{investment.soldShares}</Text>
-                      </View>
-                      
-                      <View style={styles.row}>
-                        <Text style={styles.label}>Sold Price</Text>
-                        <Text style={styles.value}>{formatCurrency(investment.soldPrice)}</Text>
-                      </View>
-                    </>
-                  )}
+              {/* For backward compatibility, only show these if there's no salesHistory */}
+              {!isActive && (!investment.salesHistory || investment.salesHistory.length === 0) && (
+              <>
+              <Divider style={styles.divider} />
+              {investment.type === INVESTMENT_TYPES.MUTUAL_FUND || investment.type === INVESTMENT_TYPES.SIP ? (
+              <>
+              <View style={styles.row}>
+              <Text style={styles.label}>Sold Units</Text>
+                <Text style={styles.value}>{formatNumber(investment.soldUnits, 3)}</Text>
+              </View>
+              
+              <View style={styles.row}>
+              <Text style={styles.label}>Sold NAV</Text>
+                <Text style={styles.value}>{formatCurrency(investment.soldNAV)}</Text>
+                </View>
                 </>
-              )}
+              ) : (
+              <>
+              <View style={styles.row}>
+              <Text style={styles.label}>Sold Shares</Text>
+                <Text style={styles.value}>{investment.soldShares}</Text>
+              </View>
+              
+              <View style={styles.row}>
+              <Text style={styles.label}>Sold Price</Text>
+                <Text style={styles.value}>{formatCurrency(investment.soldPrice)}</Text>
+                </View>
+                </>
+                )}
+                </>
+                  )}
             </Card.Content>
           </View>
         </Card>
@@ -415,6 +496,9 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
       
       {/* Transaction History Section */}
       {renderTransactionHistory()}
+      
+      {/* Sales History Section */}
+      {renderSalesHistory()}
       
       {/* Edit Transaction Modal */}
       <EditTransactionModal
