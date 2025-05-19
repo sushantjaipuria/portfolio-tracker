@@ -153,6 +153,101 @@ const PortfolioDetailScreen = ({ navigation }) => {
           />
         )}
         
+        {/* Timeline-based Summaries for the selected type */}
+        {portfolioSummary && portfolioSummary.byTimeline && activeInvestments.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.subHeader}>{selectedType} Timeline Analysis</Text>
+            
+            {/* Filter the investments of current type by date to calculate timeline stats */}
+            {(() => {
+              // Reference date: April 1, 2025
+              const april2025 = new Date(2025, 3, 1);
+              
+              // Initialize summary objects
+              const beforeApril = {
+                totalInvested: 0,
+                totalCurrentValue: 0,
+                percentageGain: 0
+              };
+              
+              const afterApril = {
+                totalInvested: 0,
+                totalCurrentValue: 0,
+                percentageGain: 0
+              };
+              
+              // Calculate totals for the filtered investments
+              activeInvestments.forEach(investment => {
+                const invested = parseInt(investment.investedAmount) || 0;
+                
+                // Calculate current value depending on investment type
+                let currentValue = 0;
+                if (selectedType === INVESTMENT_TYPES.MUTUAL_FUND || selectedType === INVESTMENT_TYPES.SIP) {
+                  currentValue = (parseFloat(investment.units) || 0) * (parseFloat(investment.currentNAV) || 0);
+                } else if (selectedType === INVESTMENT_TYPES.EQUITY) {
+                  currentValue = (parseInt(investment.shares) || 0) * (parseInt(investment.currentPrice) || 0);
+                }
+                
+                // Determine purchase date
+                let purchaseDate;
+                if (selectedType === INVESTMENT_TYPES.SIP) {
+                  purchaseDate = investment.startDate;
+                } else {
+                  purchaseDate = investment.purchaseDate;
+                }
+                
+                // Convert to JavaScript Date if it's a Firestore timestamp
+                if (purchaseDate && typeof purchaseDate.toDate === 'function') {
+                  purchaseDate = purchaseDate.toDate();
+                } else if (!(purchaseDate instanceof Date)) {
+                  purchaseDate = new Date(purchaseDate);
+                }
+                
+                // Update appropriate summary based on date
+                if (purchaseDate < april2025) {
+                  beforeApril.totalInvested += invested;
+                  beforeApril.totalCurrentValue += currentValue;
+                } else {
+                  afterApril.totalInvested += invested;
+                  afterApril.totalCurrentValue += currentValue;
+                }
+              });
+              
+              // Calculate percentage gains
+              if (beforeApril.totalInvested > 0) {
+                beforeApril.percentageGain = ((beforeApril.totalCurrentValue - beforeApril.totalInvested) / beforeApril.totalInvested) * 100;
+              }
+              
+              if (afterApril.totalInvested > 0) {
+                afterApril.percentageGain = ((afterApril.totalCurrentValue - afterApril.totalInvested) / afterApril.totalInvested) * 100;
+              }
+              
+              // Render the cards
+              return (
+                <>
+                  {beforeApril.totalInvested > 0 && (
+                    <SummaryCard
+                      title={`Pre-April 2025 ${selectedType}`}
+                      investedAmount={beforeApril.totalInvested}
+                      currentValue={beforeApril.totalCurrentValue}
+                      percentageGain={beforeApril.percentageGain}
+                    />
+                  )}
+                  
+                  {afterApril.totalInvested > 0 && (
+                    <SummaryCard
+                      title={`Post-April 2025 ${selectedType}`}
+                      investedAmount={afterApril.totalInvested}
+                      currentValue={afterApril.totalCurrentValue}
+                      percentageGain={afterApril.percentageGain}
+                    />
+                  )}
+                </>
+              );
+            })()} 
+          </View>
+        )}
+        
         {/* Active investments of selected type */}
         {activeInvestments.length > 0 ? (
           <View style={styles.section}>

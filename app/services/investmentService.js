@@ -169,8 +169,24 @@ export const calculatePortfolioSummary = (investments) => {
         totalCurrentValue: 0,
         percentageGain: 0
       }
+    },
+    // Add timeline-based summaries
+    byTimeline: {
+      beforeApril2025: {
+        totalInvested: 0,
+        totalCurrentValue: 0,
+        percentageGain: 0
+      },
+      afterApril2025: {
+        totalInvested: 0,
+        totalCurrentValue: 0,
+        percentageGain: 0
+      }
     }
   };
+
+  // Reference date: April 1, 2025
+  const april2025 = new Date(2025, 3, 1); // Month is 0-indexed, so 3 = April
 
   // Calculate totals
   investments.forEach(investment => {
@@ -194,13 +210,40 @@ export const calculatePortfolioSummary = (investments) => {
       summary.byType[type].totalInvested += invested;
       summary.byType[type].totalCurrentValue += currentValue;
     }
+    
+    // Determine purchase date
+    let purchaseDate;
+    if (type === INVESTMENT_TYPES.SIP) {
+      // For SIPs, use startDate as purchase date
+      purchaseDate = investment.startDate;
+    } else {
+      // For other investments, use purchaseDate
+      purchaseDate = investment.purchaseDate;
+    }
+    
+    // Convert to JavaScript Date if it's a Firestore timestamp
+    if (purchaseDate && typeof purchaseDate.toDate === 'function') {
+      purchaseDate = purchaseDate.toDate();
+    } else if (!(purchaseDate instanceof Date)) {
+      purchaseDate = new Date(purchaseDate);
+    }
+    
+    // Update timeline-based summary
+    if (purchaseDate < april2025) {
+      summary.byTimeline.beforeApril2025.totalInvested += invested;
+      summary.byTimeline.beforeApril2025.totalCurrentValue += currentValue;
+    } else {
+      summary.byTimeline.afterApril2025.totalInvested += invested;
+      summary.byTimeline.afterApril2025.totalCurrentValue += currentValue;
+    }
   });
 
-  // Calculate percentage gains
+  // Calculate percentage gains for overall
   if (summary.totalInvested > 0) {
     summary.percentageGain = ((summary.totalCurrentValue - summary.totalInvested) / summary.totalInvested) * 100;
   }
 
+  // Calculate percentage gains for investment types
   Object.keys(summary.byType).forEach(type => {
     if (summary.byType[type].totalInvested > 0) {
       summary.byType[type].percentageGain = 
@@ -208,6 +251,19 @@ export const calculatePortfolioSummary = (investments) => {
           summary.byType[type].totalInvested) * 100;
     }
   });
+  
+  // Calculate percentage gains for timeline-based summaries
+  if (summary.byTimeline.beforeApril2025.totalInvested > 0) {
+    summary.byTimeline.beforeApril2025.percentageGain = 
+      ((summary.byTimeline.beforeApril2025.totalCurrentValue - summary.byTimeline.beforeApril2025.totalInvested) / 
+        summary.byTimeline.beforeApril2025.totalInvested) * 100;
+  }
+  
+  if (summary.byTimeline.afterApril2025.totalInvested > 0) {
+    summary.byTimeline.afterApril2025.percentageGain = 
+      ((summary.byTimeline.afterApril2025.totalCurrentValue - summary.byTimeline.afterApril2025.totalInvested) / 
+        summary.byTimeline.afterApril2025.totalInvested) * 100;
+  }
 
   return summary;
 }; 

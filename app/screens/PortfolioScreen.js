@@ -165,6 +165,29 @@ const PortfolioScreen = ({ navigation }) => {
           </View>
         )}
         
+        {/* Timeline-based Summaries */}
+        {portfolioSummary && portfolioSummary.byTimeline && (
+          <View style={styles.section}>
+            <Text style={styles.subHeader}>Timeline Analysis</Text>
+            
+            {/* Before April 2025 */}
+            <SummaryCard
+              title="Pre-April 2025 Investments"
+              investedAmount={portfolioSummary.byTimeline.beforeApril2025.totalInvested}
+              currentValue={portfolioSummary.byTimeline.beforeApril2025.totalCurrentValue}
+              percentageGain={portfolioSummary.byTimeline.beforeApril2025.percentageGain}
+            />
+            
+            {/* After April 2025 */}
+            <SummaryCard
+              title="Post-April 2025 Investments"
+              investedAmount={portfolioSummary.byTimeline.afterApril2025.totalInvested}
+              currentValue={portfolioSummary.byTimeline.afterApril2025.totalCurrentValue}
+              percentageGain={portfolioSummary.byTimeline.afterApril2025.percentageGain}
+            />
+          </View>
+        )}
+        
         {/* Inactive/Sold Investments */}
         {inactiveInvestments.length > 0 && (
           <View style={styles.section}>
