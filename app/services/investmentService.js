@@ -87,6 +87,8 @@ export const getInvestmentsByType = async (type, status = INVESTMENT_STATUS.ACTI
 
 // Get all sold/inactive investments
 export const getSoldInvestments = async () => {
+  // NOTE: This function only returns completely sold investments (INACTIVE status)
+  // For investments with any sales history (including partial sales), use getInvestmentsWithSales()
   try {
     const q = query(
       collection(db, COLLECTIONS.INVESTMENTS),
@@ -106,6 +108,34 @@ export const getSoldInvestments = async () => {
     });
   } catch (error) {
     console.error('Error getting sold investments:', error);
+    throw error;
+  }
+};
+
+// Get investments with sales history (including partial sales)
+export const getInvestmentsWithSales = async () => {
+  try {
+    // Get all investments (both active and inactive)
+    const snapshot = await getDocs(collection(db, COLLECTIONS.INVESTMENTS));
+    
+    const investmentsWithSales = snapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        const { id: _, ...restData } = data;
+        return {
+          id: doc.id,
+          ...restData
+        };
+      })
+      .filter(investment => {
+        // Include if has sales history OR is completely sold (status inactive)
+        return (investment.salesHistory && investment.salesHistory.length > 0) ||
+               investment.status === INVESTMENT_STATUS.INACTIVE;
+      });
+    
+    return investmentsWithSales;
+  } catch (error) {
+    console.error('Error getting investments with sales:', error);
     throw error;
   }
 };
@@ -257,7 +287,16 @@ export const sellInvestmentWithSpillover = async (sellData) => {
     
     const snapshot = await getDocs(q);
     const investments = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .map(doc => {
+        const data = doc.data();
+        // Remove the empty id field from the document data to avoid overriding the Firestore ID
+        const { id: _, ...restData } = data;
+        // Return the object with the Firestore document ID
+        return {
+          id: doc.id,
+          ...restData
+        };
+      })
       .sort((a, b) => a.purchaseDate.toDate() - b.purchaseDate.toDate()); // FIFO order
     
     // Track remaining units to sell
@@ -311,24 +350,28 @@ export const calculatePortfolioSummary = (investments) => {
     totalInvested: 0,
     totalCurrentValue: 0,
     totalRealizedGain: 0, // New field to track realized gains/losses
+    totalUnrealizedGain: 0, // NEW
     percentageGain: 0,
     byType: {
       [INVESTMENT_TYPES.MUTUAL_FUND]: {
         totalInvested: 0,
         totalCurrentValue: 0,
-        totalRealizedGain: 0, // New field
+        totalRealizedGain: 0,
+        totalUnrealizedGain: 0, // NEW
         percentageGain: 0
       },
       [INVESTMENT_TYPES.SIP]: {
         totalInvested: 0,
         totalCurrentValue: 0,
-        totalRealizedGain: 0, // New field
+        totalRealizedGain: 0,
+        totalUnrealizedGain: 0, // NEW
         percentageGain: 0
       },
       [INVESTMENT_TYPES.EQUITY]: {
         totalInvested: 0,
         totalCurrentValue: 0,
-        totalRealizedGain: 0, // New field
+        totalRealizedGain: 0,
+        totalUnrealizedGain: 0, // NEW
         percentageGain: 0
       }
     },
@@ -337,13 +380,15 @@ export const calculatePortfolioSummary = (investments) => {
       beforeApril2025: {
         totalInvested: 0,
         totalCurrentValue: 0,
-        totalRealizedGain: 0, // New field
+        totalRealizedGain: 0,
+        totalUnrealizedGain: 0, // NEW
         percentageGain: 0
       },
       afterApril2025: {
         totalInvested: 0,
         totalCurrentValue: 0,
-        totalRealizedGain: 0, // New field
+        totalRealizedGain: 0,
+        totalUnrealizedGain: 0, // NEW
         percentageGain: 0
       }
     }
@@ -355,32 +400,31 @@ export const calculatePortfolioSummary = (investments) => {
   // Calculate totals
   investments.forEach(investment => {
     const type = investment.type;
+    // For merged investments, investedAmount now contains remaining invested amount
     const invested = parseInt(investment.investedAmount) || 0;
     
-    // Calculate current value depending on investment type and use remaining units/shares
+    // Calculate current value using remaining units/shares (already calculated in merger)
     let currentValue = 0;
     if (type === INVESTMENT_TYPES.MUTUAL_FUND || type === INVESTMENT_TYPES.SIP) {
-      const remainingUnits = investment.remainingUnits !== undefined ? 
-        investment.remainingUnits : parseFloat(investment.units) || 0;
+      const remainingUnits = parseFloat(investment.units) || 0; // From merger
       currentValue = remainingUnits * (parseFloat(investment.currentNAV) || 0);
     } else if (type === INVESTMENT_TYPES.EQUITY) {
-      const remainingShares = investment.remainingShares !== undefined ? 
-        investment.remainingShares : parseInt(investment.shares) || 0;
+      const remainingShares = parseInt(investment.shares) || 0; // From merger
       currentValue = remainingShares * (parseInt(investment.currentPrice) || 0);
     }
     
-    // Calculate realized gains from salesHistory
-    let realizedGain = 0;
-    if (investment.salesHistory && investment.salesHistory.length > 0) {
-      realizedGain = investment.salesHistory.reduce((total, sale) => {
-        return total + (sale.profit || 0);
-      }, 0);
-    }
+    // Calculate realized gains (should be aggregated in merger)
+    let realizedGain = investment.totalRealizedGain || 0;
     
-    // Update realized gains in summary
+    // Calculate unrealized gains
+    const unrealizedGain = currentValue - invested; // invested is now remaining invested amount
+    
+    // Update realized and unrealized gains in summary
     summary.totalRealizedGain += realizedGain;
+    summary.totalUnrealizedGain += unrealizedGain;
     if (summary.byType[type]) {
       summary.byType[type].totalRealizedGain += realizedGain;
+      summary.byType[type].totalUnrealizedGain += unrealizedGain;
     }
     
     // Determine purchase date for timeline classification
@@ -400,11 +444,13 @@ export const calculatePortfolioSummary = (investments) => {
       purchaseDate = new Date(purchaseDate);
     }
     
-    // Update timeline-based summary with realized gains
+    // Update timeline-based summary with realized and unrealized gains
     if (purchaseDate < april2025) {
       summary.byTimeline.beforeApril2025.totalRealizedGain += realizedGain;
+      summary.byTimeline.beforeApril2025.totalUnrealizedGain += unrealizedGain;
     } else {
       summary.byTimeline.afterApril2025.totalRealizedGain += realizedGain;
+      summary.byTimeline.afterApril2025.totalUnrealizedGain += unrealizedGain;
     }
     
     // Only include if there are remaining units/shares or no salesHistory yet (for compatibility)
@@ -419,7 +465,7 @@ export const calculatePortfolioSummary = (investments) => {
         summary.byType[type].totalCurrentValue += currentValue;
       }
       
-      // Update timeline-based summary
+      // Update timeline-based summary  
       if (purchaseDate < april2025) {
         summary.byTimeline.beforeApril2025.totalInvested += invested;
         summary.byTimeline.beforeApril2025.totalCurrentValue += currentValue;

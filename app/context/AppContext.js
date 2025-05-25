@@ -119,15 +119,15 @@ export const AppProvider = ({ children }) => {
     try {
       setIsLoading(true);
       const investmentsData = await getAllInvestments();
-      setInvestments(investmentsData);
+      setInvestments(investmentsData); // Keep raw data for other uses
       
-      // Calculate portfolio summary
-      const summary = calculatePortfolioSummary(investmentsData);
-      setPortfolioSummary(summary);
-      
-      // Create merged investments
+      // CHANGE: Create merged investments FIRST
       const merged = mergeInvestments(investmentsData);
       setMergedInvestments(merged);
+      
+      // CHANGE: Calculate portfolio summary using MERGED data
+      const summary = calculatePortfolioSummary(merged);
+      setPortfolioSummary(summary);
     } catch (error) {
       console.error('Error loading investments:', error);
     } finally {

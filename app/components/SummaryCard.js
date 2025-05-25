@@ -4,9 +4,12 @@ import { Card, Text, useTheme } from 'react-native-paper';
 import { formatCurrency, formatPercentage, getGainLossColor } from '../utils/helpers';
 import { globalStyles } from '../utils/theme';
 
-const SummaryCard = ({ title, investedAmount, currentValue, percentageGain, realizedGain, isInactive = false }) => {
+const SummaryCard = ({ title, investedAmount, currentValue, percentageGain, realizedGain, unrealizedGain, isInactive = false }) => {
   const theme = useTheme();
   const gainLossColor = getGainLossColor(percentageGain);
+  
+  // Calculate total gain/loss amount
+  const totalGainLossAmount = (realizedGain || 0) + (unrealizedGain || 0);
   
   const styles = StyleSheet.create({
     container: {
@@ -72,16 +75,20 @@ const SummaryCard = ({ title, investedAmount, currentValue, percentageGain, real
                 {formatCurrency(currentValue)}
               </Text>
             </View>
-            {realizedGain !== undefined && realizedGain !== 0 && (
+
+            
+            {/* NEW: Add total gain/loss amount if there are any gains/losses */}
+            {totalGainLossAmount !== 0 && (
               <View style={styles.row}>
-                <Text style={styles.label}>Realized Gain/Loss</Text>
-                <Text style={[styles.percentageValue, { color: getGainLossColor(realizedGain) }]}>
-                  {formatCurrency(realizedGain)}
+                <Text style={styles.label}>Total Gain/Loss Amount</Text>
+                <Text style={[styles.percentageValue, { color: getGainLossColor(totalGainLossAmount) }]}>
+                  {formatCurrency(totalGainLossAmount)}
                 </Text>
               </View>
             )}
+            
             <View style={styles.row}>
-              <Text style={styles.label}>Total Gain/Loss</Text>
+              <Text style={styles.label}>Total Gain/Loss %</Text>
               <Text style={[styles.percentageValue, { color: gainLossColor }]}>
                 {formatPercentage(percentageGain)}
               </Text>

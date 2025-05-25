@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { Text, Button, Card, Divider, useTheme } from 'react-native-paper';
 import { useApp } from '../context/AppContext';
 import { INVESTMENT_TYPES, INVESTMENT_STATUS } from '../models';
@@ -10,9 +10,20 @@ import EditTransactionModal from '../components/EditTransactionModal';
 
 const InvestmentDetailScreen = ({ navigation, route }) => {
   const theme = useTheme();
-  const { investments, refreshPortfolio } = useApp();
-  const investment = route.params?.investment;
+  const { investments, mergedInvestments, refreshPortfolio } = useApp(); // Add mergedInvestments
+  
+  // Get investment ID from route params
+  const investmentId = route.params?.investment?.id;
+  const paramInvestment = route.params?.investment;
+  
+  // CHANGE: Look in mergedInvestments instead of raw investments
+  const freshInvestment = mergedInvestments.find(inv => inv.id === investmentId);
+  
+  // Use fresh merged data if available
+  const investment = freshInvestment || paramInvestment;
+  
   const [originalInvestments, setOriginalInvestments] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Add state for edit modal
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -25,6 +36,13 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
       setOriginalInvestments(originals);
     }
   }, [investment, investments]);
+  
+  // Pull-to-refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshPortfolio();
+    setRefreshing(false);
+  };
   
   if (!investment) {
     return (
@@ -46,27 +64,18 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
   let currentValue = 0;
   let gainLoss = 0;
   
-  // Get remaining units/shares
-  const remainingUnits = investment.remainingUnits !== undefined 
-    ? investment.remainingUnits 
-    : investment.units;
-  const remainingShares = investment.remainingShares !== undefined 
-    ? investment.remainingShares 
-    : investment.shares;
-  
+  // The merged investment already contains the correct values
   if (investment.type === INVESTMENT_TYPES.MUTUAL_FUND || investment.type === INVESTMENT_TYPES.SIP) {
-    currentValue = remainingUnits * (investment.currentNAV / 100);
+    currentValue = investment.units * (investment.currentNAV / 100); // units already contains remaining
     if (investment.investedAmount > 0) {
-      // Calculate gain/loss based on remaining invested amount (proportional)
-      const remainingInvestedAmount = (remainingUnits / investment.units) * investment.investedAmount;
-      gainLoss = ((currentValue - (remainingInvestedAmount / 100)) / (remainingInvestedAmount / 100)) * 100;
+      // investedAmount already contains remaining invested amount from merger
+      gainLoss = ((currentValue - (investment.investedAmount / 100)) / (investment.investedAmount / 100)) * 100;
     }
   } else if (investment.type === INVESTMENT_TYPES.EQUITY) {
-    currentValue = remainingShares * (investment.currentPrice / 100);
+    currentValue = investment.shares * (investment.currentPrice / 100); // shares already contains remaining
     if (investment.investedAmount > 0) {
-      // Calculate gain/loss based on remaining invested amount (proportional)
-      const remainingInvestedAmount = (remainingShares / investment.shares) * investment.investedAmount;
-      gainLoss = ((currentValue - (remainingInvestedAmount / 100)) / (remainingInvestedAmount / 100)) * 100;
+      // investedAmount already contains remaining invested amount from merger
+      gainLoss = ((currentValue - (investment.investedAmount / 100)) / (investment.investedAmount / 100)) * 100;
     }
   }
   
@@ -304,7 +313,12 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
   });
   
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       <Text style={styles.header}>Investment Details</Text>
       
       {/* Status */}
@@ -354,8 +368,8 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
               <Text style={styles.label}>Remaining {investment.type === INVESTMENT_TYPES.EQUITY ? 'Shares' : 'Units'}</Text>
               <Text style={styles.value}>
                 {investment.type === INVESTMENT_TYPES.EQUITY 
-                  ? remainingShares
-                  : formatNumber(remainingUnits, 3)}
+                  ? investment.shares
+                  : formatNumber(investment.units, 3)}
               </Text>
             </View>
             

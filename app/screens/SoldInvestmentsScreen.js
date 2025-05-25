@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext';
 import { INVESTMENT_TYPES } from '../models';
 import InvestmentItem from '../components/InvestmentItem';
 import LoadingScreen from '../components/LoadingScreen';
-import { getSoldInvestments } from '../services/investmentService';
+import { getInvestmentsWithSales } from '../services/investmentService';
 import { formatCurrency } from '../utils/helpers';
 import { globalStyles } from '../utils/theme';
 
@@ -22,7 +22,7 @@ const SoldInvestmentsScreen = ({ navigation }) => {
   const fetchSoldInvestments = async () => {
     try {
       setIsLoading(true);
-      const investments = await getSoldInvestments();
+      const investments = await getInvestmentsWithSales();
       setSoldInvestments(investments);
       setIsLoading(false);
     } catch (error) {
@@ -63,23 +63,51 @@ const SoldInvestmentsScreen = ({ navigation }) => {
     const totals = {
       investedAmount: 0,
       soldAmount: 0,
-      profit: 0
+      realizedProfit: 0 // Track actual realized profits from sales
     };
     
     filteredInvestments.forEach(inv => {
-      totals.investedAmount += inv.investedAmount || 0;
-      
-      let soldAmount = 0;
-      if (inv.type === INVESTMENT_TYPES.MUTUAL_FUND || inv.type === INVESTMENT_TYPES.SIP) {
-        soldAmount = (inv.soldUnits || 0) * (inv.soldNAV || 0);
-      } else if (inv.type === INVESTMENT_TYPES.EQUITY) {
-        soldAmount = (inv.soldShares || 0) * (inv.soldPrice || 0);
+      // For investments with sales history, calculate based on actual sales
+      if (inv.salesHistory && inv.salesHistory.length > 0) {
+        // Sum up realized profits from sales history
+        const realizedProfit = inv.salesHistory.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+        totals.realizedProfit += realizedProfit;
+        
+        // Calculate sold amount from sales history
+        const soldAmount = inv.salesHistory.reduce((sum, sale) => {
+          if (inv.type === INVESTMENT_TYPES.EQUITY) {
+            return sum + ((sale.shares || 0) * (sale.salePrice || 0));
+          } else {
+            return sum + ((sale.units || 0) * (sale.salePrice || 0));
+          }
+        }, 0);
+        totals.soldAmount += soldAmount;
+        
+        // For invested amount, calculate proportional amount for sold units
+        let soldRatio = 0;
+        if (inv.type === INVESTMENT_TYPES.EQUITY) {
+          const totalSoldShares = inv.salesHistory.reduce((sum, sale) => sum + (sale.shares || 0), 0);
+          soldRatio = totalSoldShares / (inv.shares || 1);
+        } else {
+          const totalSoldUnits = inv.salesHistory.reduce((sum, sale) => sum + (sale.units || 0), 0);
+          soldRatio = totalSoldUnits / (inv.units || 1);
+        }
+        totals.investedAmount += (inv.investedAmount || 0) * soldRatio;
+      } else {
+        // Legacy: For completely sold investments without sales history
+        totals.investedAmount += inv.investedAmount || 0;
+        
+        let soldAmount = 0;
+        if (inv.type === INVESTMENT_TYPES.MUTUAL_FUND || inv.type === INVESTMENT_TYPES.SIP) {
+          soldAmount = (inv.soldUnits || 0) * (inv.soldNAV || 0);
+        } else if (inv.type === INVESTMENT_TYPES.EQUITY) {
+          soldAmount = (inv.soldShares || 0) * (inv.soldPrice || 0);
+        }
+        totals.soldAmount += soldAmount;
+        totals.realizedProfit += soldAmount - (inv.investedAmount || 0);
       }
-      
-      totals.soldAmount += soldAmount;
     });
     
-    totals.profit = totals.soldAmount - totals.investedAmount;
     return totals;
   };
   
@@ -229,9 +257,9 @@ const SoldInvestmentsScreen = ({ navigation }) => {
             <Text style={styles.summaryLabel}>Profit/Loss</Text>
             <Text style={[
               styles.summaryValue, 
-              totals.profit > 0 ? styles.profit : styles.loss
+              totals.realizedProfit > 0 ? styles.profit : styles.loss
             ]}>
-              {formatCurrency(totals.profit)}
+              {formatCurrency(totals.realizedProfit)}
             </Text>
           </View>
         </View>

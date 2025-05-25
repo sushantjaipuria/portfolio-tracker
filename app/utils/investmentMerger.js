@@ -23,58 +23,126 @@ export const mergeInvestments = (investments) => {
     if (type === INVESTMENT_TYPES.EQUITY) {
       const key = investment.ticker;
       if (!equityMap.has(key)) {
-        // First time seeing this ticker, initialize with a copy
+        // First time seeing this ticker, initialize with proper aggregation
+        const remainingShares = investment.remainingShares !== undefined ? 
+          investment.remainingShares : investment.shares;
+        const remainingInvested = investment.remainingShares !== undefined ?
+          (remainingShares / investment.shares) * investment.investedAmount :
+          investment.investedAmount;
+          
         equityMap.set(key, {
           ...investment,
-          // Add a subInvestments array to store the original investments
+          totalOriginalShares: investment.shares,
+          totalRemainingShares: remainingShares,
+          totalOriginalInvested: investment.investedAmount,
+          totalRemainingInvested: remainingInvested,
+          shares: remainingShares, // For display compatibility
+          investedAmount: remainingInvested, // For display compatibility
           subInvestments: [investment],
-          // Mark as merged investment
           id: `merged_${key}`
         });
       } else {
-        // Merge with existing investment
+        // Add to existing ticker
         const existing = equityMap.get(key);
-        existing.shares += investment.shares;
-        existing.investedAmount += investment.investedAmount;
+        const remainingShares = investment.remainingShares !== undefined ? 
+          investment.remainingShares : investment.shares;
+        const remainingInvested = investment.remainingShares !== undefined ?
+          (remainingShares / investment.shares) * investment.investedAmount :
+          investment.investedAmount;
+          
+        // Update totals
+        existing.totalOriginalShares += investment.shares;
+        existing.totalRemainingShares += remainingShares;
+        existing.totalOriginalInvested += investment.investedAmount;
+        existing.totalRemainingInvested += remainingInvested;
+        
+        // Update display values
+        existing.shares = existing.totalRemainingShares;
+        existing.investedAmount = existing.totalRemainingInvested;
+        
         existing.subInvestments.push(investment);
         
-        // Recalculate weighted average purchase price
-        const totalCost = existing.subInvestments.reduce(
-          (sum, inv) => sum + (inv.shares * inv.purchasePrice), 0
-        );
-        existing.purchasePrice = totalCost / existing.shares;
+        // Recalculate weighted average purchase price using remaining shares
+        const totalCost = existing.subInvestments.reduce((sum, inv) => {
+          const remShares = inv.remainingShares !== undefined ? inv.remainingShares : inv.shares;
+          return sum + (remShares * inv.purchasePrice);
+        }, 0);
+        existing.purchasePrice = existing.totalRemainingShares > 0 ? 
+          totalCost / existing.totalRemainingShares : existing.purchasePrice;
       }
     } else if (type === INVESTMENT_TYPES.MUTUAL_FUND || type === INVESTMENT_TYPES.SIP) {
       const map = type === INVESTMENT_TYPES.MUTUAL_FUND ? mutualFundMap : sipMap;
       const key = `${investment.fundHouse}_${investment.schemeName}`;
       
       if (!map.has(key)) {
-        // First time seeing this scheme, initialize with a copy
+        // First time seeing this scheme, initialize with proper aggregation
+        const remainingUnits = investment.remainingUnits !== undefined ? 
+          investment.remainingUnits : investment.units;
+        const remainingInvested = investment.remainingUnits !== undefined ?
+          (remainingUnits / investment.units) * investment.investedAmount :
+          investment.investedAmount;
+          
         map.set(key, {
           ...investment,
+          totalOriginalUnits: investment.units,
+          totalRemainingUnits: remainingUnits,
+          totalOriginalInvested: investment.investedAmount,
+          totalRemainingInvested: remainingInvested,
+          units: remainingUnits, // For display compatibility
+          investedAmount: remainingInvested, // For display compatibility
           subInvestments: [investment],
           id: `merged_${key}`
         });
       } else {
-        // Merge with existing investment
+        // Add to existing scheme
         const existing = map.get(key);
-        existing.units += investment.units;
-        existing.investedAmount += investment.investedAmount;
+        const remainingUnits = investment.remainingUnits !== undefined ? 
+          investment.remainingUnits : investment.units;
+        const remainingInvested = investment.remainingUnits !== undefined ?
+          (remainingUnits / investment.units) * investment.investedAmount :
+          investment.investedAmount;
+          
+        // Update totals
+        existing.totalOriginalUnits += investment.units;
+        existing.totalRemainingUnits += remainingUnits;
+        existing.totalOriginalInvested += investment.investedAmount;
+        existing.totalRemainingInvested += remainingInvested;
+        
+        // Update display values
+        existing.units = existing.totalRemainingUnits;
+        existing.investedAmount = existing.totalRemainingInvested;
+        
         existing.subInvestments.push(investment);
         
-        // Recalculate weighted average purchase NAV
-        const totalCost = existing.subInvestments.reduce(
-          (sum, inv) => sum + (inv.units * inv.purchaseNAV), 0
-        );
-        existing.purchaseNAV = totalCost / existing.units;
+        // Recalculate weighted average purchase NAV using remaining units
+        const totalCost = existing.subInvestments.reduce((sum, inv) => {
+          const remUnits = inv.remainingUnits !== undefined ? inv.remainingUnits : inv.units;
+          return sum + (remUnits * inv.purchaseNAV);
+        }, 0);
+        existing.purchaseNAV = existing.totalRemainingUnits > 0 ? 
+          totalCost / existing.totalRemainingUnits : existing.purchaseNAV;
       }
     }
   });
   
-  // Convert maps back to arrays and combine with inactive investments
-  const mergedEquities = Array.from(equityMap.values());
-  const mergedMutualFunds = Array.from(mutualFundMap.values());
-  const mergedSIPs = Array.from(sipMap.values());
+  // Add realized gains calculation to merged investments
+  const addRealizedGains = (mergedInvestment) => {
+    let totalRealizedGain = 0;
+    if (mergedInvestment.subInvestments) {
+      mergedInvestment.subInvestments.forEach(inv => {
+        if (inv.salesHistory && inv.salesHistory.length > 0) {
+          totalRealizedGain += inv.salesHistory.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+        }
+      });
+    }
+    mergedInvestment.totalRealizedGain = totalRealizedGain;
+    return mergedInvestment;
+  };
+  
+  // Convert maps back to arrays and add realized gains
+  const mergedEquities = Array.from(equityMap.values()).map(addRealizedGains);
+  const mergedMutualFunds = Array.from(mutualFundMap.values()).map(addRealizedGains);
+  const mergedSIPs = Array.from(sipMap.values()).map(addRealizedGains);
   const inactiveInvestments = investments.filter(inv => inv.status !== 'Active');
   
   // Return all investments

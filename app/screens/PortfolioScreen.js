@@ -125,6 +125,7 @@ const PortfolioScreen = ({ navigation }) => {
             investedAmount={portfolioSummary.totalInvested}
             currentValue={portfolioSummary.totalCurrentValue}
             realizedGain={portfolioSummary.totalRealizedGain}
+            unrealizedGain={portfolioSummary.totalUnrealizedGain} // NEW
             percentageGain={portfolioSummary.percentageGain}
           />
         )}
@@ -141,6 +142,7 @@ const PortfolioScreen = ({ navigation }) => {
                 investedAmount={portfolioSummary.byType[INVESTMENT_TYPES.MUTUAL_FUND].totalInvested}
                 currentValue={portfolioSummary.byType[INVESTMENT_TYPES.MUTUAL_FUND].totalCurrentValue}
                 realizedGain={portfolioSummary.byType[INVESTMENT_TYPES.MUTUAL_FUND].totalRealizedGain}
+                unrealizedGain={portfolioSummary.byType[INVESTMENT_TYPES.MUTUAL_FUND].totalUnrealizedGain} // NEW
                 percentageGain={portfolioSummary.byType[INVESTMENT_TYPES.MUTUAL_FUND].percentageGain}
               />
             )}
@@ -152,6 +154,7 @@ const PortfolioScreen = ({ navigation }) => {
                 investedAmount={portfolioSummary.byType[INVESTMENT_TYPES.SIP].totalInvested}
                 currentValue={portfolioSummary.byType[INVESTMENT_TYPES.SIP].totalCurrentValue}
                 realizedGain={portfolioSummary.byType[INVESTMENT_TYPES.SIP].totalRealizedGain}
+                unrealizedGain={portfolioSummary.byType[INVESTMENT_TYPES.SIP].totalUnrealizedGain} // NEW
                 percentageGain={portfolioSummary.byType[INVESTMENT_TYPES.SIP].percentageGain}
               />
             )}
@@ -163,6 +166,7 @@ const PortfolioScreen = ({ navigation }) => {
                 investedAmount={portfolioSummary.byType[INVESTMENT_TYPES.EQUITY].totalInvested}
                 currentValue={portfolioSummary.byType[INVESTMENT_TYPES.EQUITY].totalCurrentValue}
                 realizedGain={portfolioSummary.byType[INVESTMENT_TYPES.EQUITY].totalRealizedGain}
+                unrealizedGain={portfolioSummary.byType[INVESTMENT_TYPES.EQUITY].totalUnrealizedGain} // NEW
                 percentageGain={portfolioSummary.byType[INVESTMENT_TYPES.EQUITY].percentageGain}
               />
             )}
@@ -180,6 +184,7 @@ const PortfolioScreen = ({ navigation }) => {
               investedAmount={portfolioSummary.byTimeline.beforeApril2025.totalInvested}
               currentValue={portfolioSummary.byTimeline.beforeApril2025.totalCurrentValue}
               realizedGain={portfolioSummary.byTimeline.beforeApril2025.totalRealizedGain}
+              unrealizedGain={portfolioSummary.byTimeline.beforeApril2025.totalUnrealizedGain} // NEW
               percentageGain={portfolioSummary.byTimeline.beforeApril2025.percentageGain}
             />
             
@@ -189,6 +194,7 @@ const PortfolioScreen = ({ navigation }) => {
               investedAmount={portfolioSummary.byTimeline.afterApril2025.totalInvested}
               currentValue={portfolioSummary.byTimeline.afterApril2025.totalCurrentValue}
               realizedGain={portfolioSummary.byTimeline.afterApril2025.totalRealizedGain}
+              unrealizedGain={portfolioSummary.byTimeline.afterApril2025.totalUnrealizedGain} // NEW
               percentageGain={portfolioSummary.byTimeline.afterApril2025.percentageGain}
             />
           </View>

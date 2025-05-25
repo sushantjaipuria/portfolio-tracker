@@ -168,7 +168,17 @@ const SellInvestmentScreen = ({ navigation, route }) => {
       Alert.alert(
         'Success',
         'Investment sold successfully',
-        [{ text: 'OK', onPress: () => navigation.navigate('Portfolio') }]
+        [{ 
+          text: 'OK', 
+          onPress: () => {
+            // Navigate back and ensure data is fresh
+            navigation.goBack();
+            // Trigger a refresh on the previous screen
+            if (navigation.canGoBack()) {
+              navigation.getParent()?.setParams({ refreshTimestamp: Date.now() });
+            }
+          }
+        }]
       );
     } catch (error) {
       console.error('Error selling investment:', error);
