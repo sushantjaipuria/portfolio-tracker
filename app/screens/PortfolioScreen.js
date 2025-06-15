@@ -199,20 +199,7 @@ const PortfolioScreen = ({ navigation }) => {
             />
           </View>
         )}
-        
-        {/* Inactive/Sold Investments */}
-        {inactiveInvestments.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.subHeader}>Sold Investments</Text>
-            {inactiveInvestments.map(investment => (
-              <InvestmentItem
-                key={investment.id}
-                investment={investment}
-                onPress={handleInvestmentPress}
-              />
-            ))}
-          </View>
-        )}
+
         
         <Text style={styles.disclaimer}>
           Prices are delayed; not investment advice.

@@ -1,5 +1,5 @@
 import * as FileSystem from 'expo-file-system';
-import { initializeAndUpdateData } from '../utils/dataLoader';
+import { initializeDataCache } from '../utils/dataLoader';
 import { checkAndUpdateData } from '../utils/dataUpdateScheduler';
 import fundHousesData from '../data/fundHouses.json';
 import schemeNamesData from '../data/schemeNames.json';
@@ -46,8 +46,8 @@ export const copyBundledDataToDocuments = async () => {
       console.log('Scheme names data copied successfully');
     }
     
-    // Initialize data loader
-    await initializeAndUpdateData();
+    // Initialize data cache without triggering updates
+    await initializeDataCache();
     
   } catch (error) {
     console.error('Error copying bundled data to documents directory:', error);

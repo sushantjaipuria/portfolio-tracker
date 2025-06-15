@@ -5,17 +5,20 @@ import { useApp } from '../context/AppContext';
 import { INVESTMENT_TYPES } from '../models';
 import SummaryCard from '../components/SummaryCard';
 import InvestmentItem from '../components/InvestmentItem';
+import SoldSchemeSummaryCard from '../components/SoldSchemeSummaryCard';
 import LoadingScreen from '../components/LoadingScreen';
 import { getInvestmentsByType } from '../services/investmentService';
+import { groupSoldInvestments } from '../utils/groupSoldInvestments';
 import { globalStyles } from '../utils/theme';
 
 const PortfolioDetailScreen = ({ navigation }) => {
   const theme = useTheme();
-  const { mergedInvestments, portfolioSummary, refreshPortfolio } = useApp();
+  const { mergedInvestments, investments, portfolioSummary, refreshPortfolio } = useApp();
   const [selectedType, setSelectedType] = useState(INVESTMENT_TYPES.MUTUAL_FUND);
   const [filteredInvestments, setFilteredInvestments] = useState([]);
   const [activeInvestments, setActiveInvestments] = useState([]);
   const [inactiveInvestments, setInactiveInvestments] = useState([]);
+  const [groupedSoldSchemes, setGroupedSoldSchemes] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -36,8 +39,17 @@ const PortfolioDetailScreen = ({ navigation }) => {
       setFilteredInvestments(filtered);
       setActiveInvestments(active);
       setInactiveInvestments(inactive);
+      
+      // Process grouped sold schemes
+      // Note: We need to get inactive investments from the raw investments data, not merged data
+      // because mergedInvestments only contains active investments.
+      if (investments) {
+        const allInactiveInvestments = investments.filter(inv => inv.status === 'Inactive');
+        const grouped = groupSoldInvestments(allInactiveInvestments, selectedType);
+        setGroupedSoldSchemes(grouped);
+      }
     }
-  }, [selectedType, mergedInvestments]);
+  }, [selectedType, mergedInvestments, investments]);
   
   // Navigate to investment detail
   const handleInvestmentPress = (investment) => {
@@ -264,14 +276,14 @@ const PortfolioDetailScreen = ({ navigation }) => {
           <Text style={styles.noData}>No active {selectedType} investments found.</Text>
         )}
         
-        {/* Inactive/Sold investments of selected type */}
-        {inactiveInvestments.length > 0 && (
+        {/* Inactive/Sold investments of selected type - Grouped by Scheme */}
+        {groupedSoldSchemes.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.subHeader}>Sold {selectedType} Investments</Text>
-            {inactiveInvestments.map(investment => (
-              <InvestmentItem
-                key={investment.id}
-                investment={investment}
+            {groupedSoldSchemes.map(groupedScheme => (
+              <SoldSchemeSummaryCard
+                key={groupedScheme.id}
+                groupedScheme={groupedScheme}
                 onPress={handleInvestmentPress}
               />
             ))}
