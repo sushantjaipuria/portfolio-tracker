@@ -374,8 +374,18 @@ const AddInvestmentScreen = ({ navigation, route }) => {
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
-      console.error('Error adding investment:', error);
-      Alert.alert('Error', 'Failed to add investment. Please try again.');
+      // [ADD-DEBUG] Detailed error logging
+      console.error('[ADD-DEBUG] Error in handleSubmit:', error);
+      console.error('[ADD-DEBUG] Error details:', {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+      });
+      // [ADD-DEBUG] Show detailed error message to user
+      Alert.alert(
+        'Error', 
+        `Failed to add investment.\n\nError: ${error.message || 'Unknown error'}\nCode: ${error.code || 'N/A'}`
+      );
     } finally {
       setIsLoading(false);
     }

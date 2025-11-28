@@ -21,20 +21,45 @@ const COLLECTIONS = {
 // Create a new investment
 export const addInvestment = async (investment) => {
   try {
+    // [ADD-DEBUG] Log input data
+    console.log('[ADD-DEBUG] === addInvestment called ===');
+    console.log('[ADD-DEBUG] Input investment:', JSON.stringify(investment, null, 2));
+    
     const investmentData = {
       ...investment,
-      // Initialize remaining units/shares to match total
-      remainingUnits: investment.type === INVESTMENT_TYPES.EQUITY ? undefined : investment.units,
-      remainingShares: investment.type === INVESTMENT_TYPES.EQUITY ? investment.shares : undefined,
+      // Initialize remaining units/shares to match total (conditionally include to avoid undefined values)
+      ...(investment.type !== INVESTMENT_TYPES.EQUITY && { remainingUnits: investment.units }),
+      ...(investment.type === INVESTMENT_TYPES.EQUITY && { remainingShares: investment.shares }),
       salesHistory: [],
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
     
+    // [ADD-DEBUG] Log data being saved (with undefined values marked)
+    console.log('[ADD-DEBUG] Investment data to save:', JSON.stringify(investmentData, (key, value) => {
+      if (value === undefined) return '__UNDEFINED__';
+      if (typeof value === 'function') return '__FUNCTION__';
+      return value;
+    }, 2));
+    
+    // [ADD-DEBUG] Check for undefined values
+    Object.keys(investmentData).forEach(key => {
+      if (investmentData[key] === undefined) {
+        console.warn('[ADD-DEBUG] WARNING: Field "' + key + '" is undefined!');
+      }
+    });
+    
+    console.log('[ADD-DEBUG] Attempting to write to Firestore...');
     const docRef = await addDoc(collection(db, COLLECTIONS.INVESTMENTS), investmentData);
+    console.log('[ADD-DEBUG] SUCCESS: Document written with ID:', docRef.id);
     return { id: docRef.id, ...investmentData };
   } catch (error) {
-    console.error('Error adding investment:', error);
+    // [ADD-DEBUG] Detailed error logging
+    console.error('[ADD-DEBUG] === Error in addInvestment ===');
+    console.error('[ADD-DEBUG] Error name:', error.name);
+    console.error('[ADD-DEBUG] Error message:', error.message);
+    console.error('[ADD-DEBUG] Error code:', error.code);
+    console.error('[ADD-DEBUG] Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     throw error;
   }
 };
