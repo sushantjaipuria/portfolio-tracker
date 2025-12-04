@@ -33,13 +33,16 @@ const PortfolioStack = () => {
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerTitleAlign: 'left',
         headerRight: () => <OwnerToggle />,
       }}
     >
       <Stack.Screen 
         name="Portfolio" 
         component={PortfolioScreen} 
-        options={{ title: 'My Portfolio' }}
+        options={{ 
+          title: 'My Portfolio',
+        }}
       />
       <Stack.Screen 
         name="InvestmentDetail" 
@@ -49,12 +52,20 @@ const PortfolioStack = () => {
       <Stack.Screen 
         name="AddInvestment" 
         component={AddInvestmentScreen} 
-        options={{ title: 'Add Investment' }}
+        options={{ 
+          title: '',
+          headerBackTitle: 'Back',
+          headerBackTitleVisible: true,
+          headerTitleAlign: 'center',
+        }}
       />
       <Stack.Screen 
         name="SellInvestment" 
         component={SellInvestmentScreen} 
-        options={{ title: 'Sell Investment' }}
+        options={{ 
+          title: '',
+          headerTitleAlign: 'center',
+        }}
       />
     </Stack.Navigator>
   );
@@ -74,6 +85,7 @@ const PortfolioDetailStack = () => {
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerTitleAlign: 'left',
         headerRight: () => <OwnerToggle />,
       }}
     >
@@ -90,12 +102,22 @@ const PortfolioDetailStack = () => {
       <Stack.Screen 
         name="AddInvestment" 
         component={AddInvestmentScreen} 
-        options={{ title: 'Add Investment' }}
+        options={{ 
+          title: '',
+          headerBackTitle: 'Back',
+          headerBackTitleVisible: true,
+          headerTitleAlign: 'center',
+        }}
       />
       <Stack.Screen 
         name="SellInvestment" 
         component={SellInvestmentScreen} 
-        options={{ title: 'Sell Investment' }}
+        options={{ 
+          title: '',
+          headerBackTitle: 'Back',
+          headerBackTitleVisible: true,
+          headerTitleAlign: 'center',
+        }}
       />
     </Stack.Navigator>
   );
@@ -115,6 +137,7 @@ const SoldInvestmentsStack = () => {
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerTitleAlign: 'left',
         headerRight: () => <OwnerToggle />,
       }}
     >
@@ -146,6 +169,7 @@ const SettingsStack = () => {
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerTitleAlign: 'left',
         headerRight: () => <OwnerToggle />,
       }}
     >

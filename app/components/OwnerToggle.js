@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { SegmentedButtons, Text, useTheme } from 'react-native-paper';
+import { SegmentedButtons, useTheme } from 'react-native-paper';
 import { PORTFOLIO_OWNERS, useApp } from '../context/AppContext';
 
 const OwnerToggle = () => {
@@ -11,12 +11,7 @@ const OwnerToggle = () => {
     container: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginRight: 8,
-    },
-    label: {
-      marginRight: 8,
-      fontSize: 12,
-      color: theme.colors.onPrimary,
+      marginRight: 22,
     },
     segmented: {
       maxWidth: 140,
@@ -25,7 +20,6 @@ const OwnerToggle = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Portfolio</Text>
       <SegmentedButtons
         value={currentOwner}
         onValueChange={(value) => {
