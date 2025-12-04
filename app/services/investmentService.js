@@ -1,18 +1,18 @@
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  getDoc,
-  doc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where,
-  serverTimestamp,
-  arrayUnion
+import {
+    addDoc,
+    arrayUnion,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    query,
+    serverTimestamp,
+    updateDoc,
+    where
 } from 'firebase/firestore';
+import { INVESTMENT_STATUS, INVESTMENT_TYPES } from '../models';
 import { db } from '../utils/firebase';
-import { INVESTMENT_TYPES, INVESTMENT_STATUS } from '../models';
 
 const COLLECTIONS = {
   INVESTMENTS: 'investments'
@@ -64,10 +64,16 @@ export const addInvestment = async (investment) => {
   }
 };
 
-// Get all investments
-export const getAllInvestments = async () => {
+// Get all investments for a specific owner (or all if owner is not provided)
+export const getAllInvestments = async (owner) => {
   try {
-    const snapshot = await getDocs(collection(db, COLLECTIONS.INVESTMENTS));
+    let q = collection(db, COLLECTIONS.INVESTMENTS);
+    
+    if (owner) {
+      q = query(q, where('owner', '==', owner));
+    }
+    
+    const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
       const data = doc.data();
       // Remove the empty id field from the document data to avoid overriding the Firestore ID
@@ -84,14 +90,18 @@ export const getAllInvestments = async () => {
   }
 };
 
-// Get active investments by type
-export const getInvestmentsByType = async (type, status = INVESTMENT_STATUS.ACTIVE) => {
+// Get active investments by type for a specific owner
+export const getInvestmentsByType = async (type, status = INVESTMENT_STATUS.ACTIVE, owner) => {
   try {
-    const q = query(
+    let q = query(
       collection(db, COLLECTIONS.INVESTMENTS),
       where('type', '==', type),
       where('status', '==', status)
     );
+    
+    if (owner) {
+      q = query(q, where('owner', '==', owner));
+    }
     
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
@@ -110,15 +120,19 @@ export const getInvestmentsByType = async (type, status = INVESTMENT_STATUS.ACTI
   }
 };
 
-// Get all sold/inactive investments
-export const getSoldInvestments = async () => {
+// Get all sold/inactive investments for a specific owner
+export const getSoldInvestments = async (owner) => {
   // NOTE: This function only returns completely sold investments (INACTIVE status)
   // For investments with any sales history (including partial sales), use getInvestmentsWithSales()
   try {
-    const q = query(
+    let q = query(
       collection(db, COLLECTIONS.INVESTMENTS),
       where('status', '==', INVESTMENT_STATUS.INACTIVE)
     );
+    
+    if (owner) {
+      q = query(q, where('owner', '==', owner));
+    }
     
     const snapshot = await getDocs(q);
     return snapshot.docs.map(doc => {
@@ -137,11 +151,17 @@ export const getSoldInvestments = async () => {
   }
 };
 
-// Get investments with sales history (including partial sales)
-export const getInvestmentsWithSales = async () => {
+// Get investments with sales history (including partial sales) for a specific owner
+export const getInvestmentsWithSales = async (owner) => {
   try {
-    // Get all investments (both active and inactive)
-    const snapshot = await getDocs(collection(db, COLLECTIONS.INVESTMENTS));
+    // Get all investments (both active and inactive) for the owner
+    let q = collection(db, COLLECTIONS.INVESTMENTS);
+    
+    if (owner) {
+      q = query(q, where('owner', '==', owner));
+    }
+    
+    const snapshot = await getDocs(q);
     
     const investmentsWithSales = snapshot.docs
       .map(doc => {
@@ -289,6 +309,7 @@ export const deleteInvestment = async (id) => {
 };
 
 // Add function to handle spillover sales (selling across multiple investments)
+// sellData should include an `owner` field to scope the sale to a single portfolio
 export const sellInvestmentWithSpillover = async (sellData) => {
   try {
     // Get all active investments of the target type sorted by purchase date (oldest first)
@@ -298,6 +319,11 @@ export const sellInvestmentWithSpillover = async (sellData) => {
       where('type', '==', investmentType),
       where('status', '==', INVESTMENT_STATUS.ACTIVE)
     );
+    
+    // Restrict to a single portfolio owner if provided
+    if (sellData.owner) {
+      q = query(q, where('owner', '==', sellData.owner));
+    }
     
     if (sellData.fundHouse && sellData.schemeName) {
       // For mutual funds/SIPs, add criteria for fund house and scheme

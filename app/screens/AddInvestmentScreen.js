@@ -1,30 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableWithoutFeedback, TouchableOpacity, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
-import { 
-  TextInput, 
-  Button, 
-  Text, 
-  useTheme, 
-  SegmentedButtons,
-  HelperText,
-  Divider,
-  RadioButton,
-  Modal,
-  Portal,
-  IconButton
+import React, { useEffect, useState } from 'react';
+import { Alert, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import {
+    Button,
+    HelperText,
+    IconButton,
+    Modal,
+    Portal,
+    RadioButton,
+    SegmentedButtons,
+    Text,
+    TextInput,
+    useTheme
 } from 'react-native-paper';
+import AutoSuggestInput from '../components/AutoSuggestInput';
+import LoadingScreen from '../components/LoadingScreen';
 import { useApp } from '../context/AppContext';
+import { Equity, INVESTMENT_STATUS, INVESTMENT_TYPES, MutualFund, SIP, SIP_FREQUENCY } from '../models';
 import { addInvestment } from '../services/investmentService';
 import { searchFundHouses, searchSchemeNames } from '../services/mutualFundService';
-import AutoSuggestInput from '../components/AutoSuggestInput';
-import { INVESTMENT_TYPES, INVESTMENT_STATUS, SIP_FREQUENCY, MutualFund, SIP, Equity } from '../models';
-import { toPaise, formatDate, parseDateString } from '../utils/helpers';
+import { formatDate, parseDateString, toPaise } from '../utils/helpers';
 import { globalStyles } from '../utils/theme';
-import LoadingScreen from '../components/LoadingScreen';
 
 const AddInvestmentScreen = ({ navigation, route }) => {
   const theme = useTheme();
-  const { refreshPortfolio } = useApp();
+  const { refreshPortfolio, currentOwner } = useApp();
   const [isLoading, setIsLoading] = useState(false);
   
   // Get default selection from route params, if any
@@ -322,6 +321,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
       if (investmentType === INVESTMENT_TYPES.MUTUAL_FUND) {
         investmentData = {
           ...MutualFund,
+          owner: currentOwner,
           type: INVESTMENT_TYPES.MUTUAL_FUND,
           fundHouse,
           schemeName,
@@ -337,6 +337,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
       } else if (investmentType === INVESTMENT_TYPES.SIP) {
         investmentData = {
           ...SIP,
+          owner: currentOwner,
           type: INVESTMENT_TYPES.SIP,
           fundHouse,
           schemeName,
@@ -354,6 +355,7 @@ const AddInvestmentScreen = ({ navigation, route }) => {
       } else if (investmentType === INVESTMENT_TYPES.EQUITY) {
         investmentData = {
           ...Equity,
+          owner: currentOwner,
           type: INVESTMENT_TYPES.EQUITY,
           ticker,
           shares: parseInt(shares),

@@ -1,22 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, TouchableOpacity } from 'react-native';
-import { 
-  TextInput, 
-  Button, 
-  Text, 
-  useTheme, 
-  HelperText,
-  Divider,
-  Card
+import React, { useEffect, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import {
+    Button,
+    Divider,
+    HelperText,
+    Text,
+    TextInput,
+    useTheme
 } from 'react-native-paper';
-import { useApp } from '../context/AppContext';
-import { sellInvestment } from '../services/investmentService';
-import { getOriginalInvestments } from '../utils/investmentMerger';
-import { INVESTMENT_TYPES, INVESTMENT_STATUS } from '../models';
-import { toPaise, formatCurrency, formatDate } from '../utils/helpers';
-import { globalStyles } from '../utils/theme';
-import LoadingScreen from '../components/LoadingScreen';
 import InvestmentSummaryCard from '../components/InvestmentSummaryCard';
+import LoadingScreen from '../components/LoadingScreen';
+import { useApp } from '../context/AppContext';
+import { INVESTMENT_TYPES } from '../models';
+import { formatCurrency, formatDate, toPaise } from '../utils/helpers';
+import { getOriginalInvestments } from '../utils/investmentMerger';
+import { globalStyles } from '../utils/theme';
 
 const SellInvestmentScreen = ({ navigation, route }) => {
   const theme = useTheme();
@@ -147,7 +145,8 @@ const SellInvestmentScreen = ({ navigation, route }) => {
           isMutualFund: true,
           investmentType: investment.type,
           fundHouse: investment.fundHouse,
-          schemeName: investment.schemeName
+          schemeName: investment.schemeName,
+          owner: investment.owner
         };
       } else if (investment.type === INVESTMENT_TYPES.EQUITY) {
         sellData = {
@@ -156,7 +155,8 @@ const SellInvestmentScreen = ({ navigation, route }) => {
           saleDate: new Date(saleDate),
           isMutualFund: false,
           investmentType: investment.type,
-          ticker: investment.ticker
+          ticker: investment.ticker,
+          owner: investment.owner
         };
       }
       

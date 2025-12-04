@@ -1,11 +1,11 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
-import { lightTheme, darkTheme } from '../utils/theme';
-import { signInAnonymous } from '../utils/firebase';
-import { getAllInvestments, calculatePortfolioSummary } from '../services/investmentService';
-import { mergeInvestments } from '../utils/investmentMerger';
 import { copyBundledDataToDocuments } from '../services/dataUpdateService';
+import { calculatePortfolioSummary, getAllInvestments } from '../services/investmentService';
+import { signInAnonymous } from '../utils/firebase';
+import { mergeInvestments } from '../utils/investmentMerger';
+import { darkTheme, lightTheme } from '../utils/theme';
 
 // Create context
 export const AppContext = createContext();
@@ -20,6 +20,14 @@ export const THEME_PREFERENCES = {
   DARK: 'dark',
 };
 
+// Portfolio owner options
+export const PORTFOLIO_OWNERS = {
+  SJ: 'SJ',
+  SKJ: 'SKJ',
+};
+
+const DEFAULT_OWNER = PORTFOLIO_OWNERS.SJ;
+
 // Provider component
 export const AppProvider = ({ children }) => {
   // App state
@@ -29,6 +37,7 @@ export const AppProvider = ({ children }) => {
   const [investments, setInvestments] = useState([]);
   const [mergedInvestments, setMergedInvestments] = useState([]);
   const [portfolioSummary, setPortfolioSummary] = useState(null);
+  const [currentOwner, setCurrentOwner] = useState(DEFAULT_OWNER);
   
   // Theme state
   const deviceTheme = useColorScheme();
@@ -114,11 +123,11 @@ export const AppProvider = ({ children }) => {
     authenticate();
   }, []);
   
-  // Load investments
-  const loadInvestments = async () => {
+  // Load investments for the current owner
+  const loadInvestments = async (owner = currentOwner) => {
     try {
       setIsLoading(true);
-      const investmentsData = await getAllInvestments();
+      const investmentsData = await getAllInvestments(owner);
       setInvestments(investmentsData); // Keep raw data for other uses
       
       // CHANGE: Create merged investments FIRST
@@ -140,12 +149,12 @@ export const AppProvider = ({ children }) => {
     await loadInvestments();
   };
   
-  // Load investments on authentication
+  // Load investments on authentication and when owner changes
   useEffect(() => {
     if (isAuthenticated) {
       loadInvestments();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, currentOwner]);
   
   // Context value
   const contextValue = {
@@ -156,6 +165,8 @@ export const AppProvider = ({ children }) => {
     mergedInvestments,
     portfolioSummary,
     refreshPortfolio,
+    currentOwner,
+    setCurrentOwner,
     theme,
     themePreference,
     setThemePreference: saveThemePreference,

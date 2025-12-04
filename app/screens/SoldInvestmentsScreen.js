@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { Text, Chip, Divider, useTheme } from 'react-native-paper';
-import { useApp } from '../context/AppContext';
-import { INVESTMENT_TYPES } from '../models';
+import React, { useEffect, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Chip, Divider, Text, useTheme } from 'react-native-paper';
 import InvestmentItem from '../components/InvestmentItem';
 import LoadingScreen from '../components/LoadingScreen';
+import { useApp } from '../context/AppContext';
+import { INVESTMENT_TYPES } from '../models';
 import { getInvestmentsWithSales } from '../services/investmentService';
 import { formatCurrency } from '../utils/helpers';
 import { globalStyles } from '../utils/theme';
 
 const SoldInvestmentsScreen = ({ navigation }) => {
   const theme = useTheme();
-  const { refreshPortfolio } = useApp();
+  const { refreshPortfolio, currentOwner } = useApp();
   const [isLoading, setIsLoading] = useState(true);
   const [soldInvestments, setSoldInvestments] = useState([]);
   const [selectedType, setSelectedType] = useState('All');
@@ -22,7 +22,7 @@ const SoldInvestmentsScreen = ({ navigation }) => {
   const fetchSoldInvestments = async () => {
     try {
       setIsLoading(true);
-      const investments = await getInvestmentsWithSales();
+      const investments = await getInvestmentsWithSales(currentOwner);
       setSoldInvestments(investments);
       setIsLoading(false);
     } catch (error) {
@@ -31,10 +31,10 @@ const SoldInvestmentsScreen = ({ navigation }) => {
     }
   };
   
-  // Initial fetch
+  // Fetch when screen mounts and when owner changes
   useEffect(() => {
     fetchSoldInvestments();
-  }, []);
+  }, [currentOwner]);
   
   // Filter investments based on selected type
   useEffect(() => {

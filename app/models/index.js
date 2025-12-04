@@ -21,6 +21,7 @@ export const SIP_FREQUENCY = {
 // Data models
 export const MutualFund = {
   id: '',
+  owner: '', // Portfolio owner identifier (e.g., 'SJ', 'SKJ')
   type: INVESTMENT_TYPES.MUTUAL_FUND,
   fundHouse: '',
   schemeName: '',
@@ -43,6 +44,7 @@ export const MutualFund = {
 
 export const SIP = {
   id: '',
+  owner: '', // Portfolio owner identifier (e.g., 'SJ', 'SKJ')
   type: INVESTMENT_TYPES.SIP,
   fundHouse: '',
   schemeName: '',
@@ -68,6 +70,7 @@ export const SIP = {
 
 export const Equity = {
   id: '',
+  owner: '', // Portfolio owner identifier (e.g., 'SJ', 'SKJ')
   type: INVESTMENT_TYPES.EQUITY,
   ticker: '',
   shares: 0,

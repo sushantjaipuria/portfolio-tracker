@@ -1,18 +1,19 @@
-import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
-import { NavigationContainer } from '@react-navigation/native';
-import { useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import React from 'react';
+import { useTheme } from 'react-native-paper';
 
 // Screens
-import PortfolioScreen from '../screens/PortfolioScreen';
-import PortfolioDetailScreen from '../screens/PortfolioDetailScreen';
+import OwnerToggle from '../components/OwnerToggle';
 import AddInvestmentScreen from '../screens/AddInvestmentScreen';
-import SellInvestmentScreen from '../screens/SellInvestmentScreen';
 import InvestmentDetailScreen from '../screens/InvestmentDetailScreen';
-import SoldInvestmentsScreen from '../screens/SoldInvestmentsScreen';
+import PortfolioDetailScreen from '../screens/PortfolioDetailScreen';
+import PortfolioScreen from '../screens/PortfolioScreen';
+import SellInvestmentScreen from '../screens/SellInvestmentScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import SoldInvestmentsScreen from '../screens/SoldInvestmentsScreen';
 
 // Create navigation stacks
 const Stack = createStackNavigator();
@@ -32,6 +33,7 @@ const PortfolioStack = () => {
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerRight: () => <OwnerToggle />,
       }}
     >
       <Stack.Screen 
@@ -72,6 +74,7 @@ const PortfolioDetailStack = () => {
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerRight: () => <OwnerToggle />,
       }}
     >
       <Stack.Screen 
@@ -112,6 +115,7 @@ const SoldInvestmentsStack = () => {
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerRight: () => <OwnerToggle />,
       }}
     >
       <Stack.Screen 
@@ -142,6 +146,7 @@ const SettingsStack = () => {
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerRight: () => <OwnerToggle />,
       }}
     >
       <Stack.Screen 
