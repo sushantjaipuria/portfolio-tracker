@@ -33,6 +33,8 @@ const OwnerToggle = () => {
         ]}
         style={styles.segmented}
         density="small"
+        checkedColor="#FFFFFF"
+        uncheckedColor="#FFFFFF"
       />
     </View>
   );

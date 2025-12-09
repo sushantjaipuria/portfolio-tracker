@@ -47,7 +47,7 @@ const PortfolioStack = () => {
       <Stack.Screen 
         name="InvestmentDetail" 
         component={InvestmentDetailScreen} 
-        options={{ title: 'Investment Details' }}
+        options={{ title: '' }}
       />
       <Stack.Screen 
         name="AddInvestment" 
@@ -97,7 +97,9 @@ const PortfolioDetailStack = () => {
       <Stack.Screen 
         name="InvestmentDetail" 
         component={InvestmentDetailScreen} 
-        options={{ title: 'Investment Details' }}
+        options={{ 
+          title: '',
+          headerBackTitle: 'Back' }}
       />
       <Stack.Screen 
         name="AddInvestment" 
@@ -149,7 +151,7 @@ const SoldInvestmentsStack = () => {
       <Stack.Screen 
         name="InvestmentDetail" 
         component={InvestmentDetailScreen} 
-        options={{ title: 'Investment Details' }}
+        options={{ title: '' }}
       />
     </Stack.Navigator>
   );

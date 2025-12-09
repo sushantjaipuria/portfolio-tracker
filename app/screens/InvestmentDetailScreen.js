@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { Text, Button, Card, Divider, useTheme } from 'react-native-paper';
-import { useApp } from '../context/AppContext';
-import { INVESTMENT_TYPES, INVESTMENT_STATUS } from '../models';
-import { getOriginalInvestments } from '../utils/investmentMerger';
-import { formatCurrency, formatPercentage, formatDate, getGainLossColor, formatNumber } from '../utils/helpers';
-import { globalStyles } from '../utils/theme';
+import React, { useEffect, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Button, Card, Divider, Text, useTheme } from 'react-native-paper';
 import EditTransactionModal from '../components/EditTransactionModal';
+import { useApp } from '../context/AppContext';
+import { INVESTMENT_STATUS, INVESTMENT_TYPES } from '../models';
+import { formatCurrency, formatDate, formatNumber, formatPercentage, getGainLossColor } from '../utils/helpers';
+import { getOriginalInvestments } from '../utils/investmentMerger';
+import { globalStyles } from '../utils/theme';
 
 const InvestmentDetailScreen = ({ navigation, route }) => {
   const theme = useTheme();
@@ -159,14 +159,30 @@ const InvestmentDetailScreen = ({ navigation, route }) => {
   // Render transaction history section
   const renderTransactionHistory = () => {
     if (originalInvestments.length === 0) return null;
-    
+
+    // Sort transactions by purchase date in ascending order (oldest first)
+    const sortedInvestments = [...originalInvestments].sort((a, b) => {
+      const getDate = (value) => {
+        if (!value) return new Date(0);
+        if (value && typeof value.toDate === 'function') {
+          return value.toDate();
+        }
+        if (value instanceof Date) {
+          return value;
+        }
+        return new Date(value);
+      };
+
+      return getDate(a.purchaseDate) - getDate(b.purchaseDate);
+    });
+
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Transaction History</Text>
         <Card style={styles.card}>
           <View style={{ overflow: 'hidden', borderRadius: 8 }}>
             <Card.Content>
-              {originalInvestments.map((inv, index) => (
+              {sortedInvestments.map((inv, index) => (
                 <View key={inv.id}>
                   {index > 0 && <Divider style={styles.divider} />}
                   <View style={styles.transactionHeader}>
